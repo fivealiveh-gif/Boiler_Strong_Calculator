@@ -128,9 +128,9 @@ footer{font-size:.75rem;color:var(--muted)}
 <script>
 /* ================= CONFIG ================= */
 var ENDPOINT = 'https://script.google.com/macros/s/AKfycbwVvAhghg-ms8QiDpf91AiNVkRAyBffAjf_O45Sx5jojL01kZ5TzuAtEqrD0XPcuH-WlA/exec';              // Google Apps Script web app address goes here
-var APP_VERSION = 'FA26.3';
+var APP_VERSION = 'FA26.4';
 var PASSAGE = 'Exercise is medicine. Moving your body every day helps your heart, your muscles, your mind, and your mood. You do not need a gym to start. Walk, climb the stairs, lift something heavy, and keep going. Small steps add up over time.';
-var KEY = 'boilerStrongSession.v1';
+var KEY = 'boilerStrongSession.v2';
 var MIN_SAVE_AGE = 18;          // younger participants get feedback but nothing is sent
 
 /* ================= SCORING ================= */
@@ -263,11 +263,11 @@ function scrChoose(m){
   var g=S.grip.done,b=S.bal.done, both=g&&b;
   m.innerHTML='<h2>'+(g||b?(both?'Both activities done':'Try the other activity?'):'Which activity are you doing?')+'</h2>'+
    '<button type="button" class="choice'+(g?' done':'')+'" id="cGrip"><strong>Handgrip &amp; Confidence'+(g?' ✓':'')+'</strong><span>'+(g?'Done. Tap to see your result.':'Predict your grip strength, then test it.')+'</span></button>'+
-   '<button type="button" class="choice'+(b?' done':'')+'" id="cBal"><strong>Balance &amp; Texting'+(b?' ✓':'')+'</strong><span>'+(b?'Done. Tap to see your result.':'Balance on one leg with and without your phone.')+'</span></button>'+
+   '<button type="button" class="choice'+(b?' done':'')+'" id="cBal"><strong>Balance &amp; Texting'+(b?' ✓':'')+'</strong><span>'+(b?'Done. Tap to see your result.':'Balance on one leg with and without your phone. Three short trials.')+'</span></button>'+
    '<div class="nav">'+(g||b?'<button class="primary" type="button" id="finBtn">'+(both?'Finish':'No thanks, finish')+'</button>':'<button class="ghost" type="button" id="backBtn">Back</button>')+'</div>';
   $('cGrip').addEventListener('click',function(){if(!S.first)S.first='Handgrip';go(g?'gripR':'grip1');});
-  $('cBal').addEventListener('click',function(){if(!S.first)S.first='Balance';if(!S.bal.firstTrial)S.bal.firstTrial=Math.random()<.5?'No phone':'Texting';go(b?'balR':'bal1');});
-  var f=$('finBtn'); if(f)f.addEventListener('click',function(){go('wrap');});
+  $('cBal').addEventListener('click',function(){if(!S.first)S.first='Balance';balInit();go(b?'balR':'bal1');});
+  var f=$('finBtn'); if(f)f.addEventListener('click',function(){if(needWrap())go('wrap');else{S.finished=true;S.dirty=true;go('done');save();}});
 }
 
 function scrGrip1(m){
@@ -327,60 +327,84 @@ function scrGripR(m){
 var clockT=null;function stopClock(){if(clockT){clearInterval(clockT);clockT=null;}}
 function beep(){try{var C=window.AudioContext||window.webkitAudioContext,c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=880;o.connect(g);g.connect(c.destination);g.gain.value=.2;o.start();o.stop(c.currentTime+.5);}catch(e){}}
 var READY=5000, TRIAL=20000;
+var TRIALS={n:'No phone',c:'Copy the passage',o:'Your own words'};
+function balInit(){
+  var B=S.bal; if(!B.surface)B.surface='Foam pad';
+  if(!B.order){var a=['n','c','o'],k,r,t;for(k=a.length-1;k>0;k--){r=Math.floor(Math.random()*(k+1));t=a[k];a[k]=a[r];a[r]=t;}B.order=a;}
+  if(!B.c)B.c={}; if(!B.o)B.o={}; persist(); return B;
+}
+function orderText(B){return B.order.map(function(k){return TRIALS[k];}).join(' > ');}
 function scrBal1(m){
-  var B=S.bal, first=B.firstTrial||'No phone'; if(!B.surface){B.surface='Foam pad';persist();}
-  var noPhone='<div class="card"><h3><span class="tag">'+(first==='No phone'?'First':'Second')+'</span>No-phone trial</h3><p>Put this phone down or hand it to the volunteer. Stand on your <b>non-dominant leg</b> (the one you would not kick a ball with) on the chosen surface, hands on hips, eyes open, for 20 seconds. The volunteer times it and counts errors.</p></div>';
-  var texting='<div class="card"><h3><span class="tag">'+(first==='Texting'?'First':'Second')+'</span>Texting trial</h3><p>Same leg, same surface, phone in both hands. Tap Start, get into position during the 5-second countdown, then copy the passage for 20 seconds while balancing. Type as much as you can, as accurately as you can.</p>'+
-    '<button class="primary" type="button" id="startT">Start texting trial</button>'+
-    '<div class="copyhead" id="copyHead"><label for="txt"><b>Copy this passage:</b></label><span class="clock" id="clock" hidden></span></div><div class="passage">'+esc(PASSAGE)+'</div><textarea id="txt" disabled autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="The box unlocks when the trial starts.">'+esc(B.text||'')+'</textarea>'+
-    '<p class="hint" id="tDone" hidden></p></div>';
-  m.innerHTML='<h2>Balance &amp; Texting</h2><p class="say">Two 20-second trials on one leg. Wait for the volunteer before each one.</p><div class="fields">'+seg('surface','Volunteer: which surface for both trials?',['Foam pad','Firm floor'],B.surface)+'</div>'+(first==='No phone'?noPhone+texting:texting+noPhone)+nav(true,'Both trials done');
-  var txt=$('txt'),clock=$('clock'),start=$('startT'),done=$('tDone');
-  bindSeg('surface',B,'surface');
-  txt.addEventListener('input',function(){B.text=txt.value;persist();});
-  txt.addEventListener('paste',function(e){e.preventDefault();});txt.addEventListener('drop',function(e){e.preventDefault();});
-  function toTop(){try{$('copyHead').closest('.card').classList.add('running');$('copyHead').scrollIntoView({block:'start'});}catch(x){}}
-  function doneMsg(){return 'Trial complete. You typed '+(B.chars||0)+' characters'+(B.acc!=null?' at '+B.acc+'% accuracy':'')+'.';}
-  function finish(){stopClock();try{$('copyHead').closest('.card').classList.remove('running');}catch(x){}txt.disabled=true;txt.blur();B.tDone=true;B.text=txt.value;var ts=typingScore(txt.value);B.chars=ts.chars;B.correct=ts.correct;B.acc=ts.acc;persist();clock.hidden=true;start.hidden=false;start.textContent='Redo texting trial';start.className='ghost';done.hidden=false;done.textContent=doneMsg()+' Now ask the volunteer for your error count.';}
-  function tick(){
-    var el=Date.now()-B.tStart;
-    if(el<READY){clock.textContent='Ready… '+Math.ceil((READY-el)/1000);return;}
-    if(el<READY+TRIAL){if(txt.disabled){txt.disabled=false;txt.placeholder='Type here…';txt.focus();setTimeout(toTop,350);try{txt.setSelectionRange(txt.value.length,txt.value.length);}catch(x){}}clock.textContent=Math.ceil((READY+TRIAL-el)/1000)+' s';return;}
-    beep();finish();
+  var B=balInit(), tags=['First','Second','Third'];
+  function card(k,i){
+    var tag='<span class="tag">'+tags[i]+'</span>';
+    if(k==='n')return '<div class="card"><h3>'+tag+'No-phone trial</h3><p>Put this phone down or hand it to the volunteer. Stand on your <b>non-dominant leg</b> (the one you would not kick a ball with) on the chosen surface, hands on hips, eyes open, for 20 seconds. The volunteer times it and counts errors.</p></div>';
+    var T=B[k], copy=k==='c';
+    return '<div class="card" id="card-'+k+'"><h3>'+tag+(copy?'Texting trial: copy':'Texting trial: your own words')+'</h3><p>Same leg, same surface, phone in both hands. Tap Start, get into position during the 5-second countdown, then '+(copy?'copy the passage for 20 seconds. Type as much as you can, as accurately as you can.':'finish the sentence in your own words for 20 seconds. Keep typing until time is up.')+'</p>'+
+      '<button class="primary" type="button" id="start-'+k+'">Start this trial</button>'+
+      '<div class="copyhead" id="head-'+k+'"><label for="txt-'+k+'"><b>'+(copy?'Copy this passage:':'Exercise is Medicine because…')+'</b></label><span class="clock" id="clock-'+k+'" hidden></span></div>'+
+      (copy?'<div class="passage">'+esc(PASSAGE)+'</div>':'')+
+      '<textarea id="txt-'+k+'" disabled autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="The box unlocks when the trial starts.">'+esc(T.text||'')+'</textarea>'+
+      '<p class="hint" id="done-'+k+'" hidden></p></div>';
   }
-  function run(){start.hidden=true;clock.hidden=false;done.hidden=true;toTop();tick();clockT=setInterval(tick,150);}
-  start.addEventListener('click',function(){B.tStart=Date.now();B.tDone=false;B.text='';B.chars=0;B.acc=null;B.correct=0;txt.value='';persist();run();});
-  if(B.tDone){txt.disabled=true;start.textContent='Redo texting trial';start.className='ghost';done.hidden=false;done.textContent=doneMsg();}
-  else if(B.tStart){ if(Date.now()-B.tStart<READY+TRIAL)run(); else finish(); }   // refreshed during or after a trial
+  m.innerHTML='<h2>Balance &amp; Texting</h2><p class="say">Three 20-second trials on one leg, in the order shown. Wait for the volunteer before each one.</p><div class="fields">'+seg('surface','Volunteer: which surface for all trials?',['Foam pad','Firm floor'],B.surface)+'</div>'+B.order.map(card).join('')+nav(true,'All trials done');
+  bindSeg('surface',B,'surface');
+  var running=null;
+  function msg(k){var T=B[k];return 'Trial complete. You typed '+(T.chars||0)+' characters'+(k==='c'&&T.acc!=null?' at '+T.acc+'% accuracy':'')+'.';}
+  ['c','o'].forEach(function(k){
+    var T=B[k],txt=$('txt-'+k),clock=$('clock-'+k),start=$('start-'+k),done=$('done-'+k),head=$('head-'+k),crd=$('card-'+k);
+    function toTop(){try{crd.classList.add('running');head.scrollIntoView({block:'start'});}catch(x){}}
+    function shown(){txt.disabled=true;start.hidden=false;start.textContent='Redo this trial';start.className='ghost';done.hidden=false;done.textContent=msg(k);}
+    function finish(){stopClock();running=null;crd.classList.remove('running');txt.blur();T.tDone=true;T.text=txt.value;
+      if(k==='c'){var ts=typingScore(txt.value);T.chars=ts.chars;T.correct=ts.correct;T.acc=ts.acc;}else{T.chars=txt.value.trim().length;}
+      persist();clock.hidden=true;shown();done.textContent=msg(k)+' Ask the volunteer for your error count.';}
+    function tick(){var el=Date.now()-T.tStart;
+      if(el<READY){clock.textContent='Ready… '+Math.ceil((READY-el)/1000);return;}
+      if(el<READY+TRIAL){if(txt.disabled){txt.disabled=false;txt.placeholder='Type here…';txt.focus();try{txt.setSelectionRange(txt.value.length,txt.value.length);}catch(x){}setTimeout(toTop,350);}clock.textContent=Math.ceil((READY+TRIAL-el)/1000)+' s';return;}
+      beep();finish();}
+    function run(){running=k;start.hidden=true;clock.hidden=false;done.hidden=true;toTop();tick();clockT=setInterval(tick,150);}
+    txt.addEventListener('input',function(){T.text=txt.value;persist();});
+    txt.addEventListener('paste',function(e){e.preventDefault();});txt.addEventListener('drop',function(e){e.preventDefault();});
+    start.addEventListener('click',function(){if(running)return;T.tStart=Date.now();T.tDone=false;T.text='';T.chars=0;T.acc=null;T.correct=0;txt.value='';persist();run();});
+    if(T.tDone)shown();
+    else if(T.tStart){ if(Date.now()-T.tStart<READY+TRIAL&&!running)run(); else finish(); }   // refreshed during or after a trial
+  });
   $('nextBtn').addEventListener('click',function(){
-    if(clockT)return fail('Wait for the texting trial to finish.',[]);
-    if(!B.tDone)return fail('Do the texting trial first: tap Start texting trial.',[]);
+    if(running)return fail('Wait for the texting trial to finish.',[]);
+    if(!B.c.tDone)return fail('Do the copy trial first: tap Start this trial on that card.',[]);
+    if(!B.o.tDone)return fail('Do the own-words trial first: tap Start this trial on that card.',[]);
     go('bal2');
   });
 }
 function scrBal2(m){
   var B=S.bal;
   m.innerHTML='<h2>Balance: your errors</h2><p class="say">Ask the volunteer for your error count in each trial.</p>'+
-   '<div class="fields">'+field('en','Errors with NO PHONE (0–10)',B.n)+field('et','Errors while TEXTING (0–10)',B.t)+'</div>'+nav(true,'See my result');
-  bindInput('en',B,'n',true);bindInput('et',B,'t',true);
+   '<div class="fields">'+field('en','Errors with NO PHONE (0–10)',B.n,{wide:true})+field('et','Errors while COPYING the passage (0–10)',B.t,{wide:true})+field('eo','Errors while typing YOUR OWN WORDS (0–10)',B.oe,{wide:true})+'</div>'+nav(true,'See my result');
+  bindInput('en',B,'n',true);bindInput('et',B,'t',true);bindInput('eo',B,'oe',true);
   $('nextBtn').addEventListener('click',function(){
     if(!range(B.n,0,10)||B.n%1!==0)return fail('No-phone errors must be a whole number from 0 to 10.',['en']);
-    if(!range(B.t,0,10)||B.t%1!==0)return fail('Texting errors must be a whole number from 0 to 10.',['et']);
+    if(!range(B.t,0,10)||B.t%1!==0)return fail('Copying errors must be a whole number from 0 to 10.',['et']);
+    if(!range(B.oe,0,10)||B.oe%1!==0)return fail('Own-words errors must be a whole number from 0 to 10.',['eo']);
     B.done=true;S.dirty=true;go('balR');save();
   });
 }
 function scrBalR(m){
-  var B=S.bal,d=B.t-B.n,v,cls,say;
-  if(d>0){v='Your phone cost you '+d+' extra balance error'+(d===1?'':'s');cls='off';say='You made '+B.n+' with no phone and '+B.t+' while texting, in the same 20-second stance.';}
-  else if(d===0){v='Your phone did not change your balance';cls='good';say='You made '+B.n+' error'+(B.n===1?'':'s')+' in both trials. Most people lose some balance when they text.';}
-  else{v='You balanced better with your phone';cls='good';say='You made '+B.n+' with no phone and '+B.t+' while texting. A second attempt at the same stance is often steadier.';}
+  var B=S.bal,worst=Math.max(B.t,B.oe),d=worst-B.n,v,cls,say;
+  if(d>0){v='Your phone cost you up to '+d+' extra balance error'+(d===1?'':'s');cls='off';}
+  else if(d===0){v='Your phone did not change your balance';cls='good';}
+  else{v='You balanced better with your phone';cls='good';}
+  say='Errors in 20 seconds on one leg: '+B.n+' with no phone, '+B.t+' while copying, '+B.oe+' while typing your own words. '+
+      (B.oe>B.t?'Composing your own sentence cost you more balance than copying.':B.oe<B.t?'Copying cost you more balance than composing your own sentence.':'Copying and composing affected your balance equally.');
+  function bar(l,val,c){return '<span>'+l+'</span><div class="b'+(c?' t':'')+'"><i style="width:'+val*10+'%"></i></div><span>'+val+'</span>';}
   m.innerHTML='<h2>Your balance result</h2><div class="card"><p class="verdict '+cls+'">'+v+'</p><p class="say">'+say+'</p>'+
-   '<div class="bars"><span>No phone</span><div class="b"><i style="width:'+B.n*10+'%"></i></div><span>'+B.n+'</span><span>Texting</span><div class="b t"><i style="width:'+B.t*10+'%"></i></div><span>'+B.t+'</span></div>'+
-   '<dl class="stats"><div><dt>Typed in 20 seconds</dt><dd>'+(B.chars||0)+' <small>characters</small></dd></div><div><dt>Typing accuracy</dt><dd>'+(B.acc!=null?B.acc+'%':'–')+'</dd></div></dl><p class="hint">Both trials on the '+esc((B.surface||'').toLowerCase())+'.</p></div>'+
+   '<div class="bars">'+bar('No phone',B.n)+bar('Copying',B.t,1)+bar('Own words',B.oe,1)+'</div>'+
+   '<dl class="stats"><div><dt>Copied in 20 s</dt><dd>'+(B.c.chars||0)+' <small>characters</small></dd></div><div><dt>Copy accuracy</dt><dd>'+(B.c.acc!=null?B.c.acc+'%':'–')+'</dd></div>'+
+   '<div><dt>Own words in 20 s</dt><dd>'+(B.o.chars||0)+' <small>characters</small></dd></div><div><dt>Surface</dt><dd><small>'+esc(B.surface)+'</small></dd></div></dl></div>'+
    '<div class="nav"><button class="primary" type="button" id="nextBtn">Continue</button></div>';
   $('nextBtn').addEventListener('click',function(){go('choose');});
 }
 
+function needWrap(){var B=S.bal;return !(B.done&&B.o&&(B.o.text||'').trim());}
 function scrWrap(m){
   m.innerHTML='<h2>One last question</h2><div class="fields"><div class="field wide"><label for="eim">Finish the sentence. <b>Exercise is Medicine because…</b></label><textarea id="eim" maxlength="500">'+esc(S.eim||'')+'</textarea></div></div>'+
    '<div class="nav"><button class="ghost" type="button" id="backBtn">Back</button><button class="primary" type="button" id="nextBtn">Finish</button></div>';
@@ -392,7 +416,7 @@ function scrWrap(m){
 function scrDone(m){
   var G=S.grip,B=S.bal,rows='';
   if(G.done){var g=gripResult();rows+='<div><span>Handgrip best</span><span>'+g.best+' kg ('+pText(g.act)+' percentile)</span></div><div><span>Predicted / confidence</span><span>'+G.pred+' kg / '+G.conf+' of 10</span></div><div><span>Right / left</span><span>'+G.right+' / '+G.left+' kg</span></div>';}
-  if(B.done){rows+='<div><span>Balance errors, no phone</span><span>'+B.n+'</span></div><div><span>Balance errors, texting</span><span>'+B.t+'</span></div><div><span>First trial / surface</span><span>'+esc(B.firstTrial)+' / '+esc(B.surface)+'</span></div><div><span>Typed / accuracy</span><span>'+(B.chars||0)+' chars / '+(B.acc!=null?B.acc+'%':'–')+'</span></div>';}
+  if(B.done){rows+='<div><span>Errors: no phone / copy / own words</span><span>'+B.n+' / '+B.t+' / '+B.oe+'</span></div><div><span>Trial order</span><span>'+esc(orderText(B))+'</span></div><div><span>Surface</span><span>'+esc(B.surface)+'</span></div><div><span>Copied / accuracy</span><span>'+(B.c.chars||0)+' chars / '+(B.c.acc!=null?B.c.acc+'%':'–')+'</span></div><div><span>Own words</span><span>'+(B.o.chars||0)+' chars</span></div>';}
   m.innerHTML='<h2>Thank you'+(S.intake.initials?', '+esc(S.intake.initials):'')+'</h2><div id="saveBox"></div>'+
    '<div class="card"><h3>Your results</h3><div class="summary"><div><span>Entry code</span><span>'+esc(S.id)+'</span></div>'+rows+'</div></div>'+
    '<p class="say">Strength and balance both improve with regular activity. Exercise is Medicine.</p>'+
@@ -415,8 +439,11 @@ function payload(){
   if(G.done){var g=gripResult();o.grip_norms_row=(sexRow()==='M'?'Male ':'Female ')+rowLabel(I.age);o.grip_predicted_kg=G.pred;o.grip_confidence=G.conf;
     o.grip_right_kg=G.right;o.grip_left_kg=G.left;o.grip_best_kg=g.best;o.grip_best_hand=g.hand;o.grip_percentile=pVal(g.act);o.grip_predicted_percentile=pVal(g.prd);
     o.grip_error_pct=Math.round(g.err*10)/10;o.grip_label=g.label;o.grip_per_kg_bodyweight=g.rel?Math.round(g.rel*100)/100:'';}
-  if(B.done){o.balance_first_trial=B.firstTrial;o.balance_errors_no_phone=B.n;o.balance_errors_texting=B.t;o.balance_phone_cost=B.t-B.n;o.balance_text_chars=B.chars||0;o.balance_text=B.text||'';o.balance_surface=B.surface;o.balance_text_accuracy_pct=B.acc!=null?B.acc:'';o.balance_text_correct_chars=B.correct||0;}
-  o.eim_because=S.eim||'';
+  if(B.done){o.balance_first_trial=TRIALS[B.order[0]];o.balance_trial_order=orderText(B);o.balance_surface=B.surface;
+    o.balance_errors_no_phone=B.n;o.balance_errors_texting=B.t;o.balance_phone_cost=B.t-B.n;o.balance_errors_open=B.oe;o.balance_open_cost=B.oe-B.n;
+    o.balance_text_chars=B.c.chars||0;o.balance_text=B.c.text||'';o.balance_text_accuracy_pct=B.c.acc!=null?B.c.acc:'';o.balance_text_correct_chars=B.c.correct||0;
+    o.balance_open_chars=B.o.chars||0;o.balance_open_text=B.o.text||'';}
+  o.eim_because=(S.eim||'').trim()||((B.done&&B.o)?(B.o.text||'').trim():'');
   return o;
 }
 function paintSave(){
