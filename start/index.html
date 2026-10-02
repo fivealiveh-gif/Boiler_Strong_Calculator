@@ -83,6 +83,11 @@ td{font-weight:700}
 #trialCard{display:flex;flex-direction:column;gap:8px}
 #trialCard.running textarea{min-height:76px}
 #errs button{padding:12px 0;font-size:.95rem}
+.errs{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:3px;font-size:.95rem}
+.errd{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
+.errd summary{font-weight:700;cursor:pointer}
+.errd .errs{margin-top:8px}
+.errd .hint{margin-top:6px}
 .legbox{background:var(--btn-bg);color:var(--btn-fg);border-radius:10px;padding:12px 14px;font-size:1.1rem;text-align:center}
 .copyhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;scroll-margin-top:8px}
 .card.running textarea{min-height:76px}
@@ -138,7 +143,7 @@ footer{font-size:.75rem;color:var(--muted)}
 <script>
 /* ================= CONFIG ================= */
 var ENDPOINT = 'https://script.google.com/macros/s/AKfycbwVvAhghg-ms8QiDpf91AiNVkRAyBffAjf_O45Sx5jojL01kZ5TzuAtEqrD0XPcuH-WlA/exec';              // Google Apps Script web app address goes here
-var APP_VERSION = 'FA26.6';
+var APP_VERSION = 'FA26.7';
 var PASSAGE = 'Exercise is medicine. Moving your body every day helps your heart, your muscles, your mind, and your mood. You do not need a gym to start. Walk, climb the stairs, lift something heavy, and keep going. Small steps add up over time.';
 var KEY = 'boilerStrongSession.v2';
 var MIN_SAVE_AGE = 18;          // younger participants get feedback but nothing is sent
@@ -346,6 +351,10 @@ function balInit(){
 }
 function orderText(B){return B.order.map(function(k){return TRIALS[k];}).join(' > ');}
 var ERRKEY={n:'n',c:'t',o:'oe'}, TITLE={n:'No phone',c:'Texting: copy the passage',o:'Texting: your own words'};
+function errList(k){
+  var hands=k==='n'?'Hands come off the hips':k?'A hand comes off the phone':'Hands come off the hips (no phone) or the phone (texting)';
+  return '<ul class="errs"><li>Raised foot touches the ground</li><li>Step, hop, stumble, or fall</li><li>Standing heel or forefoot lifts</li><li>Hip swings more than 30° out or forward</li><li>'+hands+'</li><li>Touching the spotter, table, or wall</li></ul><p class="hint">Each one counts as 1 error. Several at the same moment count as 1. Maximum 10 per trial.</p>';
+}
 function stanceLeg(B){return B.kick?(B.kick==='Right'?'LEFT':'RIGHT'):null;}
 function scrBal1(m){                       /* setup: leg, surface, order */
   var B=balInit(), leg=stanceLeg(B); if(B.ti==null)B.ti=0;
@@ -353,6 +362,7 @@ function scrBal1(m){                       /* setup: leg, surface, order */
    '<div class="fields">'+seg('kick','Which leg would you kick a ball with?',['Right','Left'],B.kick)+'</div>'+
    (leg?'<div class="legbox">You will stand on your <b>'+leg+' leg</b> for all three trials.</div>':'')+
    '<div class="fields">'+seg('surface','Volunteer: which surface?',['Foam pad','Firm floor'],B.surface)+'</div>'+
+   '<div class="card"><h3>What counts as a balance error</h3>'+errList()+'</div>'+
    '<div class="card"><h3>Your trials, in this order</h3><ol class="plan">'+B.order.map(function(k){return '<li>'+TITLE[k]+'</li>';}).join('')+'</ol></div>'+
    nav(true,B.ti>0||B.n!=null||B.c.tStart||B.o.tStart?'Continue trials':'Start trial 1');
   $('kick').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;B.kick=b.dataset.v;persist();render();});
@@ -371,6 +381,7 @@ function scrBal2(m){                       /* one trial per screen */
   else{h+='<button class="primary" type="button" id="startBtn">Start</button><div id="trialCard"><div class="copyhead" id="copyHead"><label for="txt"><b>'+(copy?'Copy this passage:':'Exercise is Medicine because…')+'</b></label><span class="clock" id="clock" hidden></span></div>'+
      (copy?'<div class="passage">'+esc(PASSAGE)+'</div>':'')+'<textarea id="txt" disabled autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Unlocks when the trial starts.">'+esc(T.text||'')+'</textarea><p class="hint" id="tDone" hidden></p></div>'+
      '<div class="vol"><span class="tag">Volunteer</span>'+vol+'</div>';}
+  h+='<details class="errd"><summary>What counts as an error?</summary>'+errList(k)+'</details>';
   h+='<div class="fields" id="errWrap">'+seg('errs','Balance errors in this trial',[0,1,2,3,4,5,6,7,8,9,10],B[ek])+'</div>'+
      '<div class="err" id="err" role="alert" hidden></div><div class="nav"><button class="ghost" type="button" id="backT">Back</button><button class="primary" type="button" id="nextBtn">'+(last?'See my result':'Next trial')+'</button></div>';
   m.innerHTML=h;
