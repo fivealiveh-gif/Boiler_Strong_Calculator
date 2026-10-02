@@ -150,10 +150,10 @@ footer{font-size:.75rem;color:var(--muted)}
 <script>
 /* ================= CONFIG ================= */
 var ENDPOINT = 'https://script.google.com/macros/s/AKfycbwVvAhghg-ms8QiDpf91AiNVkRAyBffAjf_O45Sx5jojL01kZ5TzuAtEqrD0XPcuH-WlA/exec';              // Google Apps Script web app address goes here
-var APP_VERSION = 'FA26.8';
+var APP_VERSION = 'FA26.9';
 var PASSAGE = 'Exercise is medicine. Moving your body every day helps your heart, your muscles, your mind, and your mood. You do not need a gym to start. Walk, climb the stairs, lift something heavy, and keep going. Small steps add up over time.';
 var KEY = 'boilerStrongSession.v2';
-var MIN_SAVE_AGE = 18;          // younger participants get feedback but nothing is sent
+var MIN_SAVE_AGE = 0;           // younger participants get feedback but nothing is sent
 
 /* ================= SCORING ================= */
 var P=[5,10,25,50,75,90,95], AGES=[20,25,30,35,40,45,50,55,60,65,70,75];
@@ -442,13 +442,23 @@ function scrWrap(m){
   $('nextBtn').addEventListener('click',function(){if(!(S.eim||'').trim())return fail('Please finish the sentence before you tap Finish.',['eim']);S.finished=true;S.dirty=true;go('done');save();});
 }
 
+function pavsCard(){
+  var I=S.intake, wk=Math.round((I.days||0)*(I.mins||0)), aer=wk>=150, str=(I.str||0)>=2, gap=150-wk;
+  var head=aer&&str?'You are meeting both activity guidelines':(aer||str)?'You are meeting one of the two activity guidelines':'There is room to build toward the activity guidelines';
+  var a='You reported <b>'+wk+' minutes a week</b> of moderate to vigorous activity. '+(aer?'That meets the adult guideline of 150 or more.':'The adult guideline is 150 or more. '+(wk===0?'Any amount is a good place to start.':'You are '+gap+' minutes away'+(gap<=30?', about one more brisk walk.':'.')));
+  var t='You reported <b>'+(I.str||0)+' day'+((I.str||0)===1?'':'s')+' a week</b> of muscle-strengthening exercise. '+(str?'That meets the guideline of 2 or more.':'The guideline is 2 or more days a week.');
+  return '<div class="card"><h3>Your weekly activity</h3><p class="verdict '+(aer&&str?'good':'off')+'" style="font-size:1.25rem">'+head+'</p>'+
+    '<div class="bars"><span>Minutes</span><div class="b"><i style="width:'+Math.min(100,wk/150*100)+'%"></i></div><span>'+wk+' / 150</span><span>Strength days</span><div class="b t"><i style="width:'+Math.min(100,(I.str||0)/2*100)+'%"></i></div><span>'+(I.str||0)+' / 2</span></div>'+
+    '<p>'+a+'</p><p>'+t+'</p><p class="hint">Based on what you told us. Guidelines from the Physical Activity Guidelines for Americans, 2nd edition.</p></div>';
+}
+
 function scrDone(m){
   var G=S.grip,B=S.bal,rows='';
   if(G.done){var g=gripResult();rows+='<div><span>Handgrip best</span><span>'+g.best+' kg ('+pText(g.act)+' percentile)</span></div><div><span>Predicted / confidence</span><span>'+G.pred+' kg / '+G.conf+' of 10</span></div><div><span>Right / left</span><span>'+G.right+' / '+G.left+' kg</span></div>';}
   if(B.done){rows+='<div><span>Errors: no phone / copy / own words</span><span>'+B.n+' / '+B.t+' / '+B.oe+'</span></div><div><span>Trial order</span><span>'+esc(orderText(B))+'</span></div><div><span>Surface / stance leg</span><span>'+esc(B.surface)+' / '+(B.kick==='Right'?'Left':'Right')+'</span></div><div><span>Copied / accuracy</span><span>'+(B.c.chars||0)+' chars / '+(B.c.acc!=null?B.c.acc+'%':'–')+'</span></div><div><span>Own words</span><span>'+(B.o.chars||0)+' chars</span></div>';}
   m.innerHTML='<h2>Thank you'+(S.intake.initials?', '+esc(S.intake.initials):'')+'</h2><div id="saveBox"></div>'+
    '<div class="card"><h3>Your results</h3><div class="summary"><div><span>Entry code</span><span>'+esc(S.id)+'</span></div>'+rows+'</div></div>'+
-   '<p class="say">Strength and balance both improve with regular activity. Exercise is Medicine.</p>'+
+   pavsCard()+'<p class="say">Strength and balance both improve with regular activity. Exercise is Medicine.</p>'+
    '<div id="newWrap"><button class="ghost" type="button" id="newBtn">Start a new entry on this phone</button></div>';
   paintSave();
   $('newBtn').addEventListener('click',function(){
