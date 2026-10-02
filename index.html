@@ -1,0 +1,316 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Boiler Strong Calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@600;700&display=swap">
+<style>
+/* Layout: one phone-width column; a two-tab booth tool. Inputs on top, the result directly under them. */
+:root{
+  --bg:#f5f5f2; --surface:#ffffff; --ink:#16150f; --muted:#5f5b4f; --line:#d9d5c8;
+  --gold:#cfb991; --gold-strong:#7d6132; --track:#ebe7db;
+  --good:#2c6a3a; --good-bg:#e4f0e4; --off:#9a4a0c; --off-bg:#f8e9d8;
+  --btn-bg:#16150f; --btn-fg:#e9d6ae;
+  --display:"Archivo Narrow","Arial Narrow",Arial,sans-serif;
+  --body:"Archivo",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121110; --surface:#1c1b18; --ink:#f2efe6; --muted:#aaa493; --line:#37342c;
+    --gold:#cfb991; --gold-strong:#dcc393; --track:#2a2822;
+    --good:#86cf94; --good-bg:#1c2e20; --off:#f2a765; --off-bg:#33241a;
+    --btn-bg:#cfb991; --btn-fg:#16150f; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121110; --surface:#1c1b18; --ink:#f2efe6; --muted:#aaa493; --line:#37342c;
+  --gold:#cfb991; --gold-strong:#dcc393; --track:#2a2822;
+  --good:#86cf94; --good-bg:#1c2e20; --off:#f2a765; --off-bg:#33241a;
+  --btn-bg:#cfb991; --btn-fg:#16150f; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;margin:0}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;border-bottom:3px solid var(--gold);padding-bottom:10px}
+h1{font-family:var(--display);font-weight:700;font-size:1.9rem;line-height:1;margin:0;text-transform:uppercase;letter-spacing:.02em}
+.sub{color:var(--muted);font-size:.85rem;margin:4px 0 0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--gold-strong);outline-offset:2px}
+.ghost{background:transparent;border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;font-weight:600;font-size:.85rem}
+.tabs{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--ink);border-radius:10px;overflow:hidden}
+.tabs button{background:transparent;border:0;padding:12px 8px;font-family:var(--display);font-weight:700;font-size:1.1rem;text-transform:uppercase;letter-spacing:.04em}
+.tabs button[aria-selected="true"]{background:var(--btn-bg);color:var(--btn-fg)}
+.panel{display:flex;flex-direction:column;gap:16px}
+.example{background:var(--off-bg);color:var(--off);border-radius:8px;padding:8px 12px;font-size:.85rem;font-weight:500}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field.wide{grid-column:1/-1}
+label,.lab{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+input[type=number]{font:inherit;font-size:1.25rem;font-weight:600;font-variant-numeric:tabular-nums;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);width:100%}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{background:transparent;border:0;padding:11px 4px;font-weight:600;font-size:1rem;font-variant-numeric:tabular-nums}
+.seg button[aria-pressed="true"]{background:var(--btn-bg);color:var(--btn-fg)}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+.result{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.verdict{font-family:var(--display);font-weight:700;font-size:1.6rem;line-height:1.1;margin:0;text-wrap:balance}
+.verdict.good{color:var(--good)} .verdict.off{color:var(--off)}
+.say{margin:0;font-size:1.05rem}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin:0}
+.stats div{min-width:0}
+.stats dt{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.stats dd{margin:0;font-size:1.3rem;font-weight:700;font-variant-numeric:tabular-nums}
+.stats dd small{font-size:.8rem;font-weight:500;color:var(--muted)}
+.scale{position:relative;height:126px;margin-inline:14px}
+.scale .bar{position:absolute;left:0;right:0;top:48px;height:8px;background:var(--track);border-radius:4px}
+.scale .band{position:absolute;top:48px;height:8px;background:var(--gold)}
+.scale .tick{position:absolute;top:44px;width:2px;height:16px;background:var(--ink);transform:translateX(-1px)}
+.scale .tl{position:absolute;top:64px;transform:translateX(-50%);font-size:.68rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.scale .mk{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;font-size:.75rem;font-weight:700;white-space:nowrap}
+.scale .mk.pred{top:8px} .scale .mk.act{top:38px;flex-direction:column}
+.scale .dot{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:var(--surface)}
+.scale .mk.act .dot{background:var(--ink);width:20px;height:20px;margin-top:4px}
+.scale .mk.act span{margin-top:40px}
+.quad{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;font-size:.78rem}
+.quad .h{color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:.68rem;display:flex;align-items:center;justify-content:center;padding:2px 6px;text-align:center}
+.quad .c{border:1.5px solid var(--line);border-radius:6px;padding:8px;text-align:center;color:var(--muted)}
+.quad .c.on{background:var(--btn-bg);color:var(--btn-fg);border-color:var(--btn-bg);font-weight:700}
+.order{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
+.order strong{font-family:var(--display);font-size:1.2rem;text-transform:uppercase;letter-spacing:.03em}
+.trials{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.trials{grid-template-columns:1fr}}
+.trial{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.trial h2{font-family:var(--display);font-size:1.15rem;text-transform:uppercase;letter-spacing:.03em;margin:0}
+.trial p{margin:0;font-size:.8rem;color:var(--muted)}
+.count{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.count output{font-size:2.6rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.count button{width:44px;height:44px;border-radius:8px;border:1.5px solid var(--line);background:transparent;font-size:1.3rem;font-weight:700}
+.big{background:var(--btn-bg);color:var(--btn-fg);border:0;border-radius:10px;padding:16px 8px;font-family:var(--display);font-weight:700;font-size:1.25rem;text-transform:uppercase;letter-spacing:.04em}
+.timer{background:transparent;border:1.5px solid var(--ink);border-radius:10px;padding:10px 8px;font-weight:600;font-variant-numeric:tabular-nums}
+.timer.run{background:var(--gold);color:#16150f;border-color:var(--gold)}
+.bars{display:grid;grid-template-columns:auto 1fr auto;gap:8px 10px;align-items:center;font-size:.85rem}
+.bars .b{height:14px;background:var(--track);border-radius:4px;overflow:hidden}
+.bars .b i{display:block;height:100%;background:var(--ink)}
+.bars .b.t i{background:var(--gold-strong)}
+.bars span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+details{border-top:1.5px solid var(--line);padding-top:10px}
+summary{font-weight:600;cursor:pointer}
+details ul{margin:8px 0 0;padding-left:20px;font-size:.9rem}
+details p{font-size:.9rem;margin:8px 0 0}
+footer{font-size:.75rem;color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Boiler Strong</h1>
+      <p class="sub">Scoring calculator · Purdue Exercise is Medicine on Campus</p>
+    </div>
+    <button class="ghost" id="newBtn" type="button">New participant</button>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-handgrip" aria-selected="true" type="button">Handgrip</button>
+    <button role="tab" id="tab-balance" aria-selected="false" type="button">Balance</button>
+  </div>
+
+  <div class="example" id="exampleNote">Example values shown. Tap New participant to clear them.</div>
+
+  <!-- HANDGRIP -->
+  <section class="panel" id="panel-handgrip">
+    <div class="fields">
+      <div class="field"><label for="age">Age (years)</label><input id="age" type="number" inputmode="numeric" min="10" max="99"></div>
+      <div class="field"><span class="lab">Norms row</span>
+        <div class="seg" id="sex"><button type="button" data-v="M" aria-pressed="false">Male</button><button type="button" data-v="F" aria-pressed="false">Female</button></div></div>
+      <div class="field"><label for="pred">Predicted (kg)</label><input id="pred" type="number" inputmode="decimal" min="1" max="120" step="0.5"></div>
+      <div class="field"><label for="wt">Body weight (lb, optional)</label><input id="wt" type="number" inputmode="decimal" min="50" max="500"></div>
+      <div class="field wide"><span class="lab">Confidence in that prediction (1 = guess, 10 = certain)</span>
+        <div class="seg" id="conf"></div></div>
+      <div class="field"><label for="right">Best right (kg)</label><input id="right" type="number" inputmode="decimal" min="1" max="120" step="0.5"></div>
+      <div class="field"><label for="left">Best left (kg)</label><input id="left" type="number" inputmode="decimal" min="1" max="120" step="0.5"></div>
+    </div>
+    <p class="hint">Score = the single best squeeze from either hand. Do not add the hands together.</p>
+    <div class="result" id="gripResult"></div>
+  </section>
+
+  <!-- BALANCE -->
+  <section class="panel" id="panel-balance" hidden>
+    <div class="order"><span>Do first: <strong id="firstLabel">No phone</strong></span>
+      <button class="ghost" id="swapBtn" type="button">Switch order</button></div>
+    <div class="trials" id="trials">
+      <div class="trial" id="trial-n">
+        <h2>No phone</h2>
+        <p>Single leg, phone held in both hands, eyes on the dark screen, no typing.</p>
+        <div class="count"><button type="button" data-dec="n" aria-label="Remove one error, no phone">−</button><output id="cnt-n">0</output><span class="lab">errors</span></div>
+        <button class="big" type="button" data-inc="n">+1 error</button>
+        <button class="timer" type="button" data-timer="n">Start 20 s</button>
+      </div>
+      <div class="trial" id="trial-t">
+        <h2>Texting</h2>
+        <p>Same stance, typing the answer to “Exercise is Medicine because…”</p>
+        <div class="count"><button type="button" data-dec="t" aria-label="Remove one error, texting">−</button><output id="cnt-t">0</output><span class="lab">errors</span></div>
+        <button class="big" type="button" data-inc="t">+1 error</button>
+        <button class="timer" type="button" data-timer="t">Start 20 s</button>
+      </div>
+    </div>
+    <div class="result" id="balResult"></div>
+    <details>
+      <summary>What counts as an error</summary>
+      <ul>
+        <li>Raised foot touches the floor</li>
+        <li>Step, hop, stumble, or fall</li>
+        <li>Stance heel or forefoot lifts</li>
+        <li>Hip moves more than 30° out or forward</li>
+        <li>A hand leaves the phone</li>
+        <li>Touching the spotter, table, or wall</li>
+      </ul>
+      <p>One error per event, even if several happen at once. Maximum 10 per trial. Stance leg is the non-dominant leg (the one they would not kick a ball with).</p>
+    </details>
+  </section>
+
+  <footer>Educational demonstration, not a diagnostic test. Handgrip percentiles are interpolated from ACSM’s Guidelines for Exercise Testing and Prescription, 12th ed., Table 3.10 (best single hand, kg). Ages under 20 use the 20–24 row; ages over 79 use the 75–79 row. Nothing entered here is saved.</footer>
+</div>
+
+<script>
+// ACSM GETP 12e Table 3.10: kg at the 5th,10th,25th,50th,75th,90th,95th percentiles
+var P=[5,10,25,50,75,90,95];
+var AGES=[20,25,30,35,40,45,50,55,60,65,70,75];
+var NORMS={
+ M:[[32,34,38,43,48,52,55],[34,37,41,45,50,54,57],[36,38,42,47,52,56,59],[37,39,43,48,53,57,60],[37,40,44,48,53,57,60],[37,39,43,48,53,57,60],[36,39,43,47,52,56,59],[34,37,41,46,50,54,57],[32,35,39,44,48,52,55],[29,32,36,41,45,49,52],[25,29,33,38,42,46,49],[21,25,29,34,38,42,44]],
+ F:[[20,22,24,27,29,32,34],[21,22,25,28,30,33,35],[22,23,25,28,31,34,35],[22,23,26,28,31,34,36],[22,23,26,29,31,34,36],[22,23,25,28,31,34,36],[21,23,25,28,31,33,35],[20,22,24,27,30,32,34],[19,21,23,26,29,31,33],[17,19,22,25,27,30,31],[15,18,21,23,25,28,29],[13,16,19,21,23,26,27]]
+};
+function rowFor(sex,age){var i=Math.floor((age-20)/5);i=Math.max(0,Math.min(AGES.length-1,i));return NORMS[sex][i];}
+function rowLabel(age){var i=Math.max(0,Math.min(AGES.length-1,Math.floor((age-20)/5)));return AGES[i]+'–'+(AGES[i]+4);}
+// returns {p:number|null, tag:'below'|'above'|'in'}
+function percentile(row,kg){
+  if(kg<row[0])return{p:null,tag:'below'};
+  if(kg>row[6])return{p:null,tag:'above'};
+  for(var i=0;i<6;i++){
+    if(kg<=row[i+1]){
+      if(row[i+1]===row[i])return{p:P[i+1],tag:'in'};
+      return{p:P[i]+(kg-row[i])/(row[i+1]-row[i])*(P[i+1]-P[i]),tag:'in'};
+    }
+  }
+  return{p:95,tag:'in'};
+}
+function ord(n){n=Math.round(n);var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+function pText(r){return r.tag==='below'?'below 5th':r.tag==='above'?'above 95th':ord(r.p);}
+var ACC=10, CONF=7; // within ±10% counts as accurate; 7 or higher counts as confident
+function gripScore(age,sex,pred,conf,right,left,wtLb){
+  var best=Math.max(right||0,left||0), hand=(right||0)>=(left||0)?'right':'left';
+  var row=rowFor(sex,age), err=(best-pred)/best*100;
+  var accurate=Math.abs(err)<=ACC, confident=conf>=CONF;
+  return{best:best,hand:hand,row:row,err:err,accurate:accurate,confident:confident,
+    act:percentile(row,best),prd:percentile(row,pred),
+    rel:wtLb?best/(wtLb*0.45359237):null};
+}
+if(typeof module!=='undefined'){module.exports={percentile:percentile,rowFor:rowFor,gripScore:gripScore,pText:pText};}
+
+if(typeof document!=='undefined'){(function(){
+var $=function(id){return document.getElementById(id)};
+var st={sex:null,conf:null,n:0,t:0,first:'n',example:true};
+// confidence buttons
+var cf=$('conf');for(var i=1;i<=10;i++){var b=document.createElement('button');b.type='button';b.dataset.v=i;b.textContent=i;b.setAttribute('aria-pressed','false');cf.appendChild(b);}
+function press(group,val){group.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v==String(val)));});}
+$('sex').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;st.sex=b.dataset.v;press($('sex'),st.sex);renderGrip();});
+cf.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;st.conf=+b.dataset.v;press(cf,st.conf);renderGrip();});
+['age','pred','wt','right','left'].forEach(function(id){$(id).addEventListener('input',renderGrip);});
+function num(id){var v=parseFloat($(id).value);return isFinite(v)?v:null;}
+
+function renderGrip(){
+  var age=num('age'),pred=num('pred'),r=num('right'),l=num('left'),wt=num('wt'),box=$('gripResult');
+  var missing=[];
+  if(age===null)missing.push('age');if(!st.sex)missing.push('norms row');if(pred===null)missing.push('prediction');
+  if(!st.conf)missing.push('confidence');if(r===null&&l===null)missing.push('at least one hand score');
+  if(missing.length){box.innerHTML='<p class="say">Still needed: '+missing.join(', ')+'.</p>';return;}
+  var g=gripScore(age,st.sex,pred,st.conf,r,l,wt);
+  var dir=g.err>0?'under':'over', pct=Math.abs(g.err).toFixed(0);
+  var verdict,cls;
+  if(g.confident&&g.accurate){verdict='Confident and accurate';cls='good';}
+  else if(!g.confident&&g.accurate){verdict='Accurate, but you doubted yourself';cls='good';}
+  else if(g.confident){verdict=dir==='under'?'Confident, and stronger than you thought':'Confident, but you overestimated';cls='off';}
+  else{verdict=dir==='under'?'Unsure, and stronger than you thought':'Unsure, and you overestimated';cls='off';}
+  var say='You predicted '+pred+' kg and squeezed '+g.best+' kg ('+g.hand+' hand). ';
+  say+=g.accurate?(pct==='0'?'That is exactly on target.':'That is within '+pct+'% of your prediction.'):
+       'You '+dir+'estimated yourself by '+pct+'%.';
+  var note=(age<20||age>79)?' <small>(closest row)</small>':'';
+  var h='<p class="verdict '+cls+'">'+verdict+'</p><p class="say">'+say+'</p>';
+  h+='<dl class="stats">'+
+     '<div><dt>Your percentile</dt><dd>'+pText(g.act)+'</dd></div>'+
+     '<div><dt>You predicted</dt><dd>'+pText(g.prd)+'</dd></div>'+
+     '<div><dt>Norms row</dt><dd>'+(st.sex==='M'?'Male':'Female')+' '+rowLabel(age)+note+'</dd></div>'+
+     '<div><dt>Grip ÷ body weight</dt><dd>'+(g.rel?g.rel.toFixed(2)+' <small>kg per kg</small>':'<small>add weight</small>')+'</dd></div></dl>';
+  // scale
+  var lo=Math.min(g.row[0],pred,g.best)-3, hi=Math.max(g.row[6],pred,g.best)+3, x=function(v){return((v-lo)/(hi-lo)*100).toFixed(2)+'%';};
+  var s='<div class="scale" role="img" aria-label="Scale from '+g.row[0]+' kg at the 5th percentile to '+g.row[6]+' kg at the 95th, with predicted '+pred+' kg and actual '+g.best+' kg marked"><div class="bar"></div>';
+  s+='<div class="band" style="left:'+x(g.row[0])+';width:calc('+x(g.row[6])+' - '+x(g.row[0])+')"></div>';
+  g.row.forEach(function(v,i){s+='<div class="tick" style="left:'+x(v)+'"></div>';});
+  [0,2,3,4,6].forEach(function(i){s+='<div class="tl" style="left:'+x(g.row[i])+'">'+P[i]+'th<br>'+g.row[i]+' kg</div>';});
+  s+='<div class="mk pred" style="left:'+x(pred)+'"><span>Predicted '+pred+'</span><div class="dot"></div></div>';
+  s+='<div class="mk act" style="left:'+x(g.best)+'"><div class="dot"></div><span>Actual '+g.best+'</span></div></div>';
+  h+=s;
+  var cell=function(a,c,t){return'<div class="c'+(g.accurate===a&&g.confident===c?' on':'')+'">'+t+'</div>';};
+  h+='<div class="quad" aria-hidden="true"><div></div><div class="h">Within 10%</div><div class="h">Off by more</div>'+
+     '<div class="h">Confident<br>7–10</div>'+cell(true,true,'Calibrated')+cell(false,true,'Miscalibrated')+
+     '<div class="h">Unsure<br>1–6</div>'+cell(true,false,'Underrated')+cell(false,false,'Guessing')+'</div>';
+  box.innerHTML=h;
+}
+
+// balance
+var timers={};
+function renderBal(){
+  $('cnt-n').textContent=st.n;$('cnt-t').textContent=st.t;
+  $('firstLabel').textContent=st.first==='n'?'No phone':'Texting';
+  $('trial-n').style.order=st.first==='n'?0:1;$('trial-t').style.order=st.first==='t'?0:1;
+  var d=st.t-st.n,v,cls,say;
+  if(d>0){v='Texting cost you '+d+' extra balance error'+(d===1?'':'s');cls='off';say='You made '+st.n+' without texting and '+st.t+' while texting, in the same 20-second stance.';}
+  else if(d===0){v='Texting did not change your balance';cls='good';say='You made '+st.n+' error'+(st.n===1?'':'s')+' in both trials. Most people lose some balance when they text.';}
+  else{v='You balanced better while texting';cls='good';say='You made '+st.n+' without texting and '+st.t+' while texting. A second attempt at the same stance is often steadier.';}
+  $('balResult').innerHTML='<p class="verdict '+cls+'">'+v+'</p><p class="say">'+say+'</p>'+
+    '<div class="bars"><span>No phone</span><div class="b"><i style="width:'+st.n*10+'%"></i></div><span>'+st.n+'</span>'+
+    '<span>Texting</span><div class="b t"><i style="width:'+st.t*10+'%"></i></div><span>'+st.t+'</span></div>';
+}
+function beep(){try{var C=window.AudioContext||window.webkitAudioContext,c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=880;o.connect(g);g.connect(c.destination);g.gain.value=.2;o.start();o.stop(c.currentTime+.5);}catch(e){}}
+$('trials').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  if(b.dataset.inc){var k=b.dataset.inc;st[k]=Math.min(10,st[k]+1);touch();renderBal();}
+  else if(b.dataset.dec){var k2=b.dataset.dec;st[k2]=Math.max(0,st[k2]-1);touch();renderBal();}
+  else if(b.dataset.timer){
+    var id=b.dataset.timer;
+    if(timers[id]){clearInterval(timers[id]);timers[id]=null;b.classList.remove('run');b.textContent='Start 20 s';return;}
+    var end=Date.now()+20000;b.classList.add('run');b.textContent='20 s left · tap to stop';
+    timers[id]=setInterval(function(){
+      var left=Math.ceil((end-Date.now())/1000);
+      if(left<=0){clearInterval(timers[id]);timers[id]=null;b.classList.remove('run');b.textContent='Time. Start again';beep();}
+      else b.textContent=left+' s left · tap to stop';
+    },200);
+  }
+});
+$('swapBtn').addEventListener('click',function(){st.first=st.first==='n'?'t':'n';renderBal();});
+
+function touch(){if(st.example){st.example=false;$('exampleNote').hidden=true;}}
+['age','pred','wt','right','left'].forEach(function(id){$(id).addEventListener('input',touch);});
+$('sex').addEventListener('click',touch);cf.addEventListener('click',touch);
+
+function show(tab){
+  var g=tab!=='balance';
+  $('panel-handgrip').hidden=!g;$('panel-balance').hidden=g;
+  $('tab-handgrip').setAttribute('aria-selected',String(g));$('tab-balance').setAttribute('aria-selected',String(!g));
+}
+$('tab-handgrip').addEventListener('click',function(){show('handgrip');});
+$('tab-balance').addEventListener('click',function(){show('balance');});
+
+$('newBtn').addEventListener('click',function(){
+  ['age','pred','wt','right','left'].forEach(function(id){$(id).value='';});
+  st.sex=null;st.conf=null;st.n=0;st.t=0;st.first=Math.random()<.5?'n':'t';st.example=false;
+  press($('sex'),'');press(cf,'');$('exampleNote').hidden=true;
+  Object.keys(timers).forEach(function(k){if(timers[k]){clearInterval(timers[k]);timers[k]=null;}});
+  document.querySelectorAll('.timer').forEach(function(b){b.classList.remove('run');b.textContent='Start 20 s';});
+  renderGrip();renderBal();window.scrollTo(0,0);
+});
+
+// example state so the first view shows what the tool does
+$('age').value=21;$('pred').value=38;$('wt').value=165;$('right').value=46;$('left').value=43;
+st.sex='M';st.conf=8;st.n=1;st.t=4;press($('sex'),'M');press(cf,8);
+show(location.hash==='#balance'?'balance':'handgrip');renderGrip();renderBal();
+})();}
+</script>
+
+</body></html>
