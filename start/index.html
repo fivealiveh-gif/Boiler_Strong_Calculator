@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Purdue Boiler Strong</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#f5f5f2; --surface:#ffffff; --ink:#16150f; --muted:#5f5b4f; --line:#d9d5c8;
+  --gold:#cfb991; --gold-strong:#7d6132; --track:#ebe7db;
+  --good:#2c6a3a; --good-bg:#e4f0e4; --off:#9a4a0c; --off-bg:#f8e9d8; --bad:#a3261c;
+  --btn-bg:#16150f; --btn-fg:#e9d6ae;
+  --display:"Archivo Narrow","Arial Narrow",Arial,sans-serif;
+  --body:"Archivo",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#121110; --surface:#1c1b18; --ink:#f2efe6; --muted:#aaa493; --line:#37342c;
+    --gold:#cfb991; --gold-strong:#dcc393; --track:#2a2822;
+    --good:#86cf94; --good-bg:#1c2e20; --off:#f2a765; --off-bg:#33241a; --bad:#ff9b8f;
+    --btn-bg:#cfb991; --btn-fg:#16150f; color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{overscroll-behavior-y:contain;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;margin:0;touch-action:manipulation}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 56px;display:flex;flex-direction:column;gap:16px}
+header{border-bottom:3px solid var(--gold);padding-bottom:10px}
+h1{font-family:var(--display);font-weight:700;font-size:1.7rem;line-height:1;margin:0;text-transform:uppercase;letter-spacing:.02em}
+.sub{color:var(--muted);font-size:.85rem;margin:4px 0 0}
+h2{font-family:var(--display);font-weight:700;font-size:1.45rem;line-height:1.1;margin:0;text-transform:uppercase;letter-spacing:.02em;text-wrap:balance}
+p{margin:0}
+.steps{display:flex;gap:4px}
+.steps i{flex:1;height:5px;border-radius:3px;background:var(--track)}
+.steps i.on{background:var(--gold-strong)}
+.note{background:var(--off-bg);color:var(--off);border-radius:8px;padding:9px 12px;font-size:.88rem;font-weight:500;display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.note.ok{background:var(--good-bg);color:var(--good)}
+.note button{background:transparent;border:0;color:inherit;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:4px}
+.panel{display:flex;flex-direction:column;gap:16px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field.wide{grid-column:1/-1}
+label,.lab{font-size:.8rem;font-weight:600;color:var(--muted)}
+input[type=number],input[type=text],textarea{font:inherit;font-size:1.15rem;font-weight:600;font-variant-numeric:tabular-nums;padding:11px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);width:100%}
+textarea{font-weight:400;font-size:1rem;min-height:130px;resize:vertical}
+textarea:disabled{opacity:.6}
+input.bad,textarea.bad,.seg.bad{border-color:var(--bad)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--gold-strong);outline-offset:2px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg.stack{grid-auto-flow:row}
+.seg button{background:transparent;border:0;padding:12px 4px;font-weight:600;font-size:1rem;font-variant-numeric:tabular-nums}
+.seg.stack button{text-align:left;padding:12px 14px;border-top:1px solid var(--line)}
+.seg.stack button:first-child{border-top:0}
+.seg button[aria-pressed="true"]{background:var(--btn-bg);color:var(--btn-fg)}
+.err{color:var(--bad);font-size:.88rem;font-weight:600}
+.hint{font-size:.85rem;color:var(--muted)}
+.nav{display:flex;gap:10px}
+.primary{flex:1;background:var(--btn-bg);color:var(--btn-fg);border:0;border-radius:10px;padding:16px 10px;font-family:var(--display);font-weight:700;font-size:1.2rem;text-transform:uppercase;letter-spacing:.04em}
+.primary:disabled{opacity:.45}
+.ghost{background:transparent;border:1.5px solid var(--line);border-radius:10px;padding:14px 16px;font-weight:600}
+.choice{background:var(--surface);border:1.5px solid var(--ink);border-radius:12px;padding:18px 16px;text-align:left;display:flex;flex-direction:column;gap:4px}
+.choice strong{font-family:var(--display);font-size:1.35rem;text-transform:uppercase;letter-spacing:.03em}
+.choice span{color:var(--muted);font-size:.9rem}
+.choice.done{border-color:var(--line);opacity:.6}
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.card h3{font-family:var(--display);font-size:1.15rem;text-transform:uppercase;letter-spacing:.03em;margin:0}
+.tag{display:inline-block;background:var(--gold);color:#16150f;border-radius:5px;padding:1px 7px;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-right:6px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.85rem}
+th,td{padding:6px 4px;text-align:center;border-bottom:1px solid var(--line)}
+th{font-size:.7rem;color:var(--muted);font-weight:600}
+td{font-weight:700}
+.clock{font-family:var(--display);font-size:3.2rem;font-weight:700;line-height:1;text-align:center;font-variant-numeric:tabular-nums}
+.verdict{font-family:var(--display);font-weight:700;font-size:1.6rem;line-height:1.1;text-wrap:balance}
+.verdict.good{color:var(--good)} .verdict.off{color:var(--off)}
+.say{font-size:1.05rem}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin:0}
+.stats dt{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.stats dd{margin:0;font-size:1.3rem;font-weight:700;font-variant-numeric:tabular-nums}
+.stats dd small{font-size:.8rem;font-weight:500;color:var(--muted)}
+.scale{position:relative;height:126px;margin-inline:14px}
+.scale .bar{position:absolute;left:0;right:0;top:48px;height:8px;background:var(--track);border-radius:4px}
+.scale .band{position:absolute;top:48px;height:8px;background:var(--gold)}
+.scale .tick{position:absolute;top:44px;width:2px;height:16px;background:var(--ink);transform:translateX(-1px)}
+.scale .tl{position:absolute;top:64px;transform:translateX(-50%);font-size:.68rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;text-align:center}
+.scale .mk{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;font-size:.75rem;font-weight:700;white-space:nowrap}
+.scale .mk.pred{top:8px} .scale .mk.act{top:38px}
+.scale .dot{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:var(--surface)}
+.scale .mk.act .dot{background:var(--ink);width:20px;height:20px;margin-top:4px}
+.scale .mk.act span{margin-top:40px}
+.bars{display:grid;grid-template-columns:auto 1fr auto;gap:8px 10px;align-items:center;font-size:.9rem}
+.bars .b{height:14px;background:var(--track);border-radius:4px;overflow:hidden}
+.bars .b i{display:block;height:100%;background:var(--ink)}
+.bars .b.t i{background:var(--gold-strong)}
+.bars span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+.savebox{border-radius:10px;padding:12px 14px;font-weight:600;display:flex;flex-direction:column;gap:8px}
+.savebox.ok{background:var(--good-bg);color:var(--good)}
+.savebox.wait{background:var(--track);color:var(--ink)}
+.savebox.fail{background:var(--off-bg);color:var(--off)}
+.savebox button{align-self:flex-start;background:var(--btn-bg);color:var(--btn-fg);border:0;border-radius:8px;padding:10px 16px;font-weight:700}
+.summary{font-size:.9rem;font-variant-numeric:tabular-nums}
+.summary div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:5px 0}
+.summary div span:last-child{font-weight:700;text-align:right}
+footer{font-size:.75rem;color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--btn-bg);color:var(--btn-fg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:.9rem;max-width:calc(100% - 32px);text-align:center;z-index:5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Purdue Boiler Strong</h1>
+    <p class="sub">Exercise is Medicine on Campus</p>
+  </header>
+  <div class="steps" id="steps" aria-hidden="true"></div>
+  <div id="resume" class="note" hidden></div>
+  <main class="panel" id="main"></main>
+  <footer>Educational demonstration, not a medical test. Your answers are stored without your name. Handgrip percentiles are interpolated from ACSM’s Guidelines for Exercise Testing and Prescription, 12th ed., Table 3.10 (best single hand, kg). The balance activity is a modified Balance Error Scoring System; published BESS norms do not apply.</footer>
+</div>
+<div id="toast" role="status" hidden></div>
+
+<script>
+/* ================= CONFIG ================= */
+var ENDPOINT = '';              // Google Apps Script web app address goes here
+var APP_VERSION = 'FA26.1';
+var KEY = 'boilerStrongSession.v1';
+var MIN_SAVE_AGE = 18;          // younger participants get feedback but nothing is sent
+
+/* ================= SCORING ================= */
+var P=[5,10,25,50,75,90,95], AGES=[20,25,30,35,40,45,50,55,60,65,70,75];
+var NORMS={
+ M:[[32,34,38,43,48,52,55],[34,37,41,45,50,54,57],[36,38,42,47,52,56,59],[37,39,43,48,53,57,60],[37,40,44,48,53,57,60],[37,39,43,48,53,57,60],[36,39,43,47,52,56,59],[34,37,41,46,50,54,57],[32,35,39,44,48,52,55],[29,32,36,41,45,49,52],[25,29,33,38,42,46,49],[21,25,29,34,38,42,44]],
+ F:[[20,22,24,27,29,32,34],[21,22,25,28,30,33,35],[22,23,25,28,31,34,35],[22,23,26,28,31,34,36],[22,23,26,29,31,34,36],[22,23,25,28,31,34,36],[21,23,25,28,31,33,35],[20,22,24,27,30,32,34],[19,21,23,26,29,31,33],[17,19,22,25,27,30,31],[15,18,21,23,25,28,29],[13,16,19,21,23,26,27]]
+};
+function rowIdx(age){return Math.max(0,Math.min(AGES.length-1,Math.floor((age-20)/5)));}
+function rowFor(sex,age){return NORMS[sex][rowIdx(age)];}
+function rowLabel(age){var i=rowIdx(age);return AGES[i]+'–'+(AGES[i]+4);}
+function percentile(row,kg){
+  if(kg<row[0])return{p:null,tag:'below'}; if(kg>row[6])return{p:null,tag:'above'};
+  for(var i=0;i<6;i++){ if(kg<=row[i+1]){ if(row[i+1]===row[i])return{p:P[i+1],tag:'in'};
+    return{p:P[i]+(kg-row[i])/(row[i+1]-row[i])*(P[i+1]-P[i]),tag:'in'}; } }
+  return{p:95,tag:'in'};
+}
+function ord(n){n=Math.round(n);var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+function pText(r){return r.tag==='below'?'below 5th':r.tag==='above'?'above 95th':ord(r.p);}
+function pVal(r){return r.tag==='below'?'<5':r.tag==='above'?'>95':String(Math.round(r.p));}
+var ACC=10, CONF=7;
+function gripScore(age,sex,pred,conf,right,left,wtLb){
+  var best=Math.max(right||0,left||0), hand=(right||0)>=(left||0)?'right':'left';
+  var row=rowFor(sex,age), err=(best-pred)/best*100, accurate=Math.abs(err)<=ACC, confident=conf>=CONF;
+  var label=confident?(accurate?'Confident and accurate':'Confident, but off'):(accurate?'Accurate, but doubted':'Unsure, and off');
+  return{best:best,hand:hand,row:row,err:err,accurate:accurate,confident:confident,label:label,
+    act:percentile(row,best),prd:percentile(row,pred),rel:wtLb?best/(wtLb*0.45359237):null};
+}
+
+/* ================= STATE (saved on this device after every change) ================= */
+function uid(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);}
+function blank(){return{v:1,id:uid(),started:new Date().toISOString(),step:'welcome',first:null,
+  intake:{},grip:{},bal:{},dirty:false,savedAt:null,finished:false};}
+var S, memOnly=false;
+function load(){try{var r=localStorage.getItem(KEY);if(r){var o=JSON.parse(r);if(o&&o.v===1&&o.id)return o;}}catch(e){memOnly=true;}return null;}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){memOnly=true;}}
+function inProgress(){return S.step!=='welcome'&&!S.finished;}
+
+/* ================= HELPERS ================= */
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function num(v){if(v===''||v==null)return null;var n=parseFloat(v);return isFinite(n)?n:null;}
+var toastT;function toast(msg){var t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true;},3200);}
+function field(id,label,val,o){o=o||{};return '<div class="field'+(o.wide?' wide':'')+'"><label for="'+id+'">'+label+'</label><input id="'+id+'" type="'+(o.text?'text':'number')+'" '+(o.text?'autocomplete="off" autocapitalize="characters" maxlength="5"':'inputmode="decimal" step="any"')+' value="'+esc(val)+'"></div>';}
+function seg(id,label,opts,val,o){o=o||{};return '<div class="field wide"><span class="lab">'+label+'</span><div class="seg'+(o.stack?' stack':'')+'" id="'+id+'">'+opts.map(function(x){return '<button type="button" data-v="'+esc(x)+'" aria-pressed="'+(String(val)===String(x))+'">'+esc(x)+'</button>';}).join('')+'</div></div>';}
+function bindSeg(id,obj,key,after){$(id).addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;obj[key]=b.dataset.v;$(id).querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});$(id).classList.remove('bad');persist();if(after)after();});}
+function bindInput(id,obj,key,isNum){var el=$(id);el.addEventListener('input',function(){obj[key]=isNum?num(el.value):el.value.trim().toUpperCase();el.classList.remove('bad');persist();});}
+function nav(back,nextLabel){return '<div class="err" id="err" role="alert" hidden></div><div class="nav">'+(back?'<button class="ghost" type="button" id="backBtn">Back</button>':'')+'<button class="primary" type="button" id="nextBtn">'+nextLabel+'</button></div>';}
+function fail(msg,ids){var e=$('err');e.textContent=msg;e.hidden=false;(ids||[]).forEach(function(i){var el=$(i);if(el)el.classList.add('bad');});var f=ids&&$(ids[0]);if(f&&f.scrollIntoView)f.scrollIntoView({block:'center',behavior:'smooth'});return false;}
+function range(v,lo,hi){return v!==null&&v!==undefined&&v>=lo&&v<=hi;}
+
+/* ================= NAVIGATION (Back button and refresh never lose the entry) ================= */
+var ORDER=['welcome','intake','choose','grip1','grip2','gripR','bal1','bal2','balR','done'];
+function go(step,replace){S.step=step;persist();try{history[replace?'replaceState':'pushState']({step:step},'');}catch(e){}render();window.scrollTo(0,0);}
+function prevOf(step){return{intake:'welcome',choose:'intake',grip1:'choose',grip2:'grip1',gripR:'grip2',bal1:'choose',bal2:'bal1',balR:'bal2',done:'choose'}[step]||'welcome';}
+window.addEventListener('popstate',function(e){
+  var st=e.state;
+  if(!st||st.guard){ try{history.pushState({step:S.step},'');}catch(x){} toast('Use the buttons on this page. Your answers are safe.'); return; }
+  if(S.finished&&st.step!=='done'){ try{history.pushState({step:'done'},'');}catch(x){} return; }
+  S.step=st.step;persist();render();
+});
+window.addEventListener('beforeunload',function(e){ if(inProgress()&&memOnly){e.preventDefault();e.returnValue='';} });
+
+/* ================= SCREENS ================= */
+function sexRow(){var g=S.intake.gender;return g==='Male'?'M':g==='Female'?'F':(S.grip.row||null);}
+function render(){
+  var m=$('main'), s=S.step, idx={welcome:0,intake:1,choose:2,grip1:3,grip2:3,gripR:3,bal1:3,bal2:3,balR:3,done:4}[s];
+  $('steps').innerHTML=[0,1,2,3,4].map(function(i){return '<i class="'+(i<=idx?'on':'')+'"></i>';}).join('');
+  stopClock();
+  ({welcome:scrWelcome,intake:scrIntake,choose:scrChoose,grip1:scrGrip1,grip2:scrGrip2,gripR:scrGripR,bal1:scrBal1,bal2:scrBal2,balR:scrBalR,done:scrDone}[s]||scrWelcome)(m);
+  var b=$('backBtn'); if(b)b.addEventListener('click',function(){go(prevOf(S.step));});
+}
+function showResume(){
+  var r=$('resume'); if(!inProgress()){r.hidden=true;return;}
+  r.hidden=false; r.className='note ok';
+  r.innerHTML='<span>Picked up where you left off'+(S.intake.initials?' ('+esc(S.intake.initials)+')':'')+'.</span><button type="button" id="notMe">Not you? Start over</button>';
+  $('notMe').addEventListener('click',function(){
+    r.className='note';
+    r.innerHTML='<span>Erase this entry and start a new one?</span><span><button type="button" id="yesNew">Yes, erase</button><button type="button" id="noNew">Keep it</button></span>';
+    $('yesNew').addEventListener('click',function(){S=blank();persist();r.hidden=true;go('welcome',true);});
+    $('noNew').addEventListener('click',function(){r.hidden=true;});
+  });
+}
+
+function scrWelcome(m){
+  m.innerHTML='<h2>Two quick activities</h2>'+
+  '<p class="say">Test your grip strength against your own prediction, and see what your phone does to your balance. Pick either one, or do both.</p>'+
+  '<p class="hint">Takes about 3 minutes each. Your answers save on this phone as you go, so a refresh or the Back button will not lose them.</p>'+
+  '<div class="nav"><button class="primary" type="button" id="nextBtn">Start</button></div>';
+  $('nextBtn').addEventListener('click',function(){go('intake');});
+}
+
+function scrIntake(m){
+  var I=S.intake;
+  m.innerHTML='<h2>About you</h2><div class="fields">'+
+   field('initials','Initials',I.initials||'',{text:true})+field('age','Age (years)',I.age)+
+   field('height','Height (inches)',I.height)+field('weight','Weight (lb)',I.weight)+
+   seg('gender','Gender',['Female','Male','Non-binary','Prefer not to say'],I.gender,{stack:true})+
+   seg('phone','Hours on your phone each day (best guess)',['Less than 2','2–3','3–4','4–5','5 or more'],I.phone,{stack:true})+
+   field('days','Days per week of moderate to vigorous activity (0–7)',I.days,{wide:true})+
+   field('mins','Minutes per day on those days',I.mins,{wide:true})+
+   field('str','Days per week of muscle-strengthening exercise (0–7)',I.str,{wide:true})+
+  '</div>'+nav(true,'Next');
+  bindInput('initials',I,'initials');['age','height','weight','days','mins','str'].forEach(function(k){bindInput(k,I,k,true);});
+  bindSeg('gender',I,'gender');bindSeg('phone',I,'phone');
+  $('nextBtn').addEventListener('click',function(){
+    if(!I.initials)return fail('Enter your initials.',['initials']);
+    if(!range(I.age,10,99))return fail('Enter your age in years.',['age']);
+    if(!range(I.height,40,90))return fail('Enter your height in inches. Example: 5 ft 8 in = 68.',['height']);
+    if(!range(I.weight,60,500))return fail('Enter your weight in pounds.',['weight']);
+    if(!I.gender)return fail('Choose a gender option.',['gender']);
+    if(!I.phone)return fail('Choose your daily phone hours.',['phone']);
+    if(!range(I.days,0,7))return fail('Days per week must be between 0 and 7.',['days']);
+    if(!range(I.mins,0,600))return fail('Enter minutes per day as a number. Example: 45.',['mins']);
+    if(!range(I.str,0,7))return fail('Strength days per week must be between 0 and 7.',['str']);
+    go('choose');
+  });
+}
+
+function scrChoose(m){
+  var g=S.grip.done,b=S.bal.done, both=g&&b;
+  m.innerHTML='<h2>'+(g||b?(both?'Both activities done':'Try the other activity?'):'Which activity are you doing?')+'</h2>'+
+   '<button type="button" class="choice'+(g?' done':'')+'" id="cGrip"><strong>Handgrip &amp; Confidence'+(g?' ✓':'')+'</strong><span>'+(g?'Done. Tap to see your result.':'Predict your grip strength, then test it.')+'</span></button>'+
+   '<button type="button" class="choice'+(b?' done':'')+'" id="cBal"><strong>Balance &amp; Texting'+(b?' ✓':'')+'</strong><span>'+(b?'Done. Tap to see your result.':'Balance on one leg with and without your phone.')+'</span></button>'+
+   '<div class="nav">'+(g||b?'<button class="primary" type="button" id="finBtn">'+(both?'Finish':'No thanks, finish')+'</button>':'<button class="ghost" type="button" id="backBtn">Back</button>')+'</div>';
+  $('cGrip').addEventListener('click',function(){if(!S.first)S.first='Handgrip';go(g?'gripR':'grip1');});
+  $('cBal').addEventListener('click',function(){if(!S.first)S.first='Balance';if(!S.bal.firstTrial)S.bal.firstTrial=Math.random()<.5?'No phone':'Texting';go(b?'balR':'bal1');});
+  var f=$('finBtn'); if(f)f.addEventListener('click',function(){S.finished=true;go('done');save();});
+}
+
+function scrGrip1(m){
+  var G=S.grip, I=S.intake, needRow=!(I.gender==='Male'||I.gender==='Female');
+  function table(){var sx=sexRow(); if(!sx)return '<p class="hint">Choose a chart row to see the reference values.</p>';
+    var r=rowFor(sx,I.age);return '<div class="tablewrap"><table><tr>'+P.map(function(p){return '<th>'+p+'th</th>';}).join('')+'</tr><tr>'+r.map(function(v){return '<td>'+v+'</td>';}).join('')+'</tr></table></div><p class="hint">Kilograms for the best single hand, '+(sx==='M'?'males':'females')+' aged '+rowLabel(I.age)+(I.age<20||I.age>79?' (closest row to your age)':'')+'. 50th is average.</p>';}
+  m.innerHTML='<h2>Handgrip: predict first</h2><p class="say">Before you squeeze, predict your result. No practice squeezes.</p>'+
+   (needRow?'<div class="fields">'+seg('row','Which reference chart should we use for you?',['Male','Female'],G.row==='M'?'Male':G.row==='F'?'Female':'')+'</div>':'')+
+   '<div class="card"><h3>Your reference chart</h3><div id="tbl">'+table()+'</div></div>'+
+   '<div class="fields">'+field('pred','How many kilograms will your best squeeze be?',G.pred,{wide:true})+
+   seg('conf','How confident are you in that prediction? (1 = a guess, 10 = certain)',[1,2,3,4,5,6,7,8,9,10],G.conf)+'</div>'+nav(true,'Lock in prediction');
+  if(needRow)$('row').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;G.row=b.dataset.v==='Male'?'M':'F';$('row').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});$('row').classList.remove('bad');persist();$('tbl').innerHTML=table();});
+  bindInput('pred',G,'pred',true);
+  $('conf').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;G.conf=+b.dataset.v;$('conf').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});$('conf').classList.remove('bad');persist();});
+  $('nextBtn').addEventListener('click',function(){
+    if(!sexRow())return fail('Choose which reference chart to use.',['row']);
+    if(!range(G.pred,5,120))return fail('Enter your prediction in kilograms, between 5 and 120.',['pred']);
+    if(!G.conf)return fail('Tap a confidence rating from 1 to 10.',['conf']);
+    go('grip2');
+  });
+}
+
+function scrGrip2(m){
+  var G=S.grip;
+  m.innerHTML='<h2>Handgrip: test</h2><div class="card"><p><span class="tag">Now</span>Hand your prediction over to the volunteer: they will test each hand twice and tell you your scores.</p></div>'+
+   '<div class="fields">'+field('right','Best RIGHT hand (kg)',G.right)+field('left','Best LEFT hand (kg)',G.left)+'</div>'+
+   '<p class="hint">Enter the best single squeeze for each hand. Do not add them together.</p>'+nav(true,'See my result');
+  bindInput('right',G,'right',true);bindInput('left',G,'left',true);
+  $('nextBtn').addEventListener('click',function(){
+    if(!range(G.right,3,100))return fail('Enter your best right-hand squeeze in kilograms, between 3 and 100.',['right']);
+    if(!range(G.left,3,100))return fail('Enter your best left-hand squeeze in kilograms, between 3 and 100.',['left']);
+    G.done=true;S.dirty=true;go('gripR');save();
+  });
+}
+
+function gripResult(){var G=S.grip,I=S.intake;return gripScore(I.age,sexRow(),G.pred,G.conf,G.right,G.left,I.weight);}
+function scrGripR(m){
+  var G=S.grip,I=S.intake,g=gripResult(),dir=g.err>0?'under':'over',pct=Math.abs(g.err).toFixed(0),verdict,cls;
+  if(g.confident&&g.accurate){verdict='Confident and accurate';cls='good';}
+  else if(!g.confident&&g.accurate){verdict='Accurate, but you doubted yourself';cls='good';}
+  else if(g.confident){verdict=dir==='under'?'Confident, and stronger than you thought':'Confident, but you overestimated';cls='off';}
+  else{verdict=dir==='under'?'Unsure, and stronger than you thought':'Unsure, and you overestimated';cls='off';}
+  var say='You predicted '+G.pred+' kg and squeezed '+g.best+' kg ('+g.hand+' hand). '+(g.accurate?(pct==='0'?'That is exactly on target.':'That is within '+pct+'% of your prediction.'):'You '+dir+'estimated yourself by '+pct+'%.');
+  var lo=Math.min(g.row[0],G.pred,g.best)-3,hi=Math.max(g.row[6],G.pred,g.best)+3,x=function(v){return((v-lo)/(hi-lo)*100).toFixed(2)+'%';};
+  var sc='<div class="scale" role="img" aria-label="Your predicted and actual grip on the reference scale"><div class="bar"></div><div class="band" style="left:'+x(g.row[0])+';width:calc('+x(g.row[6])+' - '+x(g.row[0])+')"></div>';
+  g.row.forEach(function(v){sc+='<div class="tick" style="left:'+x(v)+'"></div>';});
+  [0,3,6].forEach(function(i){sc+='<div class="tl" style="left:'+x(g.row[i])+'">'+P[i]+'th<br>'+g.row[i]+' kg</div>';});
+  sc+='<div class="mk pred" style="left:'+x(G.pred)+'"><span>Predicted '+G.pred+'</span><div class="dot"></div></div><div class="mk act" style="left:'+x(g.best)+'"><div class="dot"></div><span>Actual '+g.best+'</span></div></div>';
+  m.innerHTML='<h2>Your handgrip result</h2><div class="card"><p class="verdict '+cls+'">'+verdict+'</p><p class="say">'+say+'</p>'+
+   '<dl class="stats"><div><dt>Your percentile</dt><dd>'+pText(g.act)+'</dd></div><div><dt>You predicted</dt><dd>'+pText(g.prd)+'</dd></div>'+
+   '<div><dt>Confidence</dt><dd>'+G.conf+' <small>of 10</small></dd></div><div><dt>Grip ÷ body weight</dt><dd>'+(g.rel?g.rel.toFixed(2):'–')+' <small>kg per kg</small></dd></div></dl>'+sc+'</div>'+
+   '<div class="nav"><button class="primary" type="button" id="nextBtn">Continue</button></div>';
+  $('nextBtn').addEventListener('click',function(){go('choose');});
+}
+
+/* ---- balance ---- */
+var clockT=null;function stopClock(){if(clockT){clearInterval(clockT);clockT=null;}}
+function beep(){try{var C=window.AudioContext||window.webkitAudioContext,c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=880;o.connect(g);g.connect(c.destination);g.gain.value=.2;o.start();o.stop(c.currentTime+.5);}catch(e){}}
+var READY=5000, TRIAL=20000;
+function scrBal1(m){
+  var B=S.bal, first=B.firstTrial||'No phone';
+  var noPhone='<div class="card"><h3><span class="tag">'+(first==='No phone'?'First':'Second')+'</span>No-phone trial</h3><p>Put this phone down or hand it to the volunteer. Stand on your <b>non-dominant leg</b> (the one you would not kick a ball with), hands on hips, eyes open, for 20 seconds. The volunteer times it and counts errors.</p></div>';
+  var texting='<div class="card"><h3><span class="tag">'+(first==='Texting'?'First':'Second')+'</span>Texting trial</h3><p>Same leg, phone in both hands. Tap Start, get into position during the 5-second countdown, then type your answer for 20 seconds while balancing.</p>'+
+    '<div class="clock" id="clock" hidden></div><button class="primary" type="button" id="startT">Start texting trial</button>'+
+    '<label for="txt"><b>Exercise is Medicine because…</b></label><textarea id="txt" disabled placeholder="The box unlocks when the trial starts.">'+esc(B.text||'')+'</textarea>'+
+    '<p class="hint" id="tDone" hidden></p></div>';
+  m.innerHTML='<h2>Balance &amp; Texting</h2><p class="say">Two 20-second trials on one leg. Wait for the volunteer before each one.</p>'+(first==='No phone'?noPhone+texting:texting+noPhone)+nav(true,'Both trials done');
+  var txt=$('txt'),clock=$('clock'),start=$('startT'),done=$('tDone');
+  txt.addEventListener('input',function(){B.text=txt.value;persist();});
+  function finish(){stopClock();txt.disabled=true;txt.blur();B.tDone=true;B.text=txt.value;B.chars=txt.value.length;persist();clock.hidden=true;start.hidden=false;start.textContent='Redo texting trial';start.className='ghost';done.hidden=false;done.textContent='Trial complete. You typed '+B.chars+' characters. Now ask the volunteer for your error count.';}
+  function tick(){
+    var el=Date.now()-B.tStart;
+    if(el<READY){clock.textContent='Ready… '+Math.ceil((READY-el)/1000);return;}
+    if(el<READY+TRIAL){if(txt.disabled){txt.disabled=false;txt.placeholder='Type here…';txt.focus();try{txt.setSelectionRange(txt.value.length,txt.value.length);}catch(x){}}clock.textContent=Math.ceil((READY+TRIAL-el)/1000)+' s';return;}
+    beep();finish();
+  }
+  function run(){start.hidden=true;clock.hidden=false;done.hidden=true;tick();clockT=setInterval(tick,150);}
+  start.addEventListener('click',function(){B.tStart=Date.now();B.tDone=false;B.text='';txt.value='';persist();run();});
+  if(B.tDone){txt.disabled=true;start.textContent='Redo texting trial';start.className='ghost';done.hidden=false;done.textContent='Trial complete. You typed '+(B.chars||0)+' characters.';}
+  else if(B.tStart){ if(Date.now()-B.tStart<READY+TRIAL)run(); else finish(); }   // refreshed during or after a trial
+  $('nextBtn').addEventListener('click',function(){
+    if(clockT)return fail('Wait for the texting trial to finish.',[]);
+    if(!B.tDone)return fail('Do the texting trial first: tap Start texting trial.',[]);
+    go('bal2');
+  });
+}
+function scrBal2(m){
+  var B=S.bal;
+  m.innerHTML='<h2>Balance: your errors</h2><p class="say">Ask the volunteer for your error count in each trial.</p>'+
+   '<div class="fields">'+field('en','Errors with NO PHONE (0–10)',B.n)+field('et','Errors while TEXTING (0–10)',B.t)+'</div>'+nav(true,'See my result');
+  bindInput('en',B,'n',true);bindInput('et',B,'t',true);
+  $('nextBtn').addEventListener('click',function(){
+    if(!range(B.n,0,10)||B.n%1!==0)return fail('No-phone errors must be a whole number from 0 to 10.',['en']);
+    if(!range(B.t,0,10)||B.t%1!==0)return fail('Texting errors must be a whole number from 0 to 10.',['et']);
+    B.done=true;S.dirty=true;go('balR');save();
+  });
+}
+function scrBalR(m){
+  var B=S.bal,d=B.t-B.n,v,cls,say;
+  if(d>0){v='Your phone cost you '+d+' extra balance error'+(d===1?'':'s');cls='off';say='You made '+B.n+' with no phone and '+B.t+' while texting, in the same 20-second stance.';}
+  else if(d===0){v='Your phone did not change your balance';cls='good';say='You made '+B.n+' error'+(B.n===1?'':'s')+' in both trials. Most people lose some balance when they text.';}
+  else{v='You balanced better with your phone';cls='good';say='You made '+B.n+' with no phone and '+B.t+' while texting. A second attempt at the same stance is often steadier.';}
+  m.innerHTML='<h2>Your balance result</h2><div class="card"><p class="verdict '+cls+'">'+v+'</p><p class="say">'+say+'</p>'+
+   '<div class="bars"><span>No phone</span><div class="b"><i style="width:'+B.n*10+'%"></i></div><span>'+B.n+'</span><span>Texting</span><div class="b t"><i style="width:'+B.t*10+'%"></i></div><span>'+B.t+'</span></div>'+
+   '<p class="hint">You typed '+(B.chars||0)+' characters in 20 seconds while balancing.</p></div>'+
+   '<div class="nav"><button class="primary" type="button" id="nextBtn">Continue</button></div>';
+  $('nextBtn').addEventListener('click',function(){go('choose');});
+}
+
+function scrDone(m){
+  var G=S.grip,B=S.bal,rows='';
+  if(G.done){var g=gripResult();rows+='<div><span>Handgrip best</span><span>'+g.best+' kg ('+pText(g.act)+' percentile)</span></div><div><span>Predicted / confidence</span><span>'+G.pred+' kg / '+G.conf+' of 10</span></div><div><span>Right / left</span><span>'+G.right+' / '+G.left+' kg</span></div>';}
+  if(B.done){rows+='<div><span>Balance errors, no phone</span><span>'+B.n+'</span></div><div><span>Balance errors, texting</span><span>'+B.t+'</span></div><div><span>First trial</span><span>'+esc(B.firstTrial)+'</span></div>';}
+  m.innerHTML='<h2>Thank you'+(S.intake.initials?', '+esc(S.intake.initials):'')+'</h2><div id="saveBox"></div>'+
+   '<div class="card"><h3>Your results</h3><div class="summary"><div><span>Entry code</span><span>'+esc(S.id)+'</span></div>'+rows+'</div></div>'+
+   '<p class="say">Strength and balance both improve with regular activity. Exercise is Medicine.</p>'+
+   '<div id="newWrap"><button class="ghost" type="button" id="newBtn">Start a new entry on this phone</button></div>';
+  paintSave();
+  $('newBtn').addEventListener('click',function(){
+    var w=$('newWrap'),unsaved=S.dirty&&saveState!=='skip';
+    w.innerHTML='<div class="note"><span>'+(unsaved?'This entry has NOT been saved. Erase it anyway?':'Clear this entry and start a new one?')+'</span><span><button type="button" id="yesNew">Yes</button><button type="button" id="noNew">No</button></span></div>';
+    $('yesNew').addEventListener('click',function(){S=blank();persist();go('welcome',true);});
+    $('noNew').addEventListener('click',function(){render();});
+  });
+}
+
+/* ================= SAVING (retries until it succeeds; same entry is updated, never duplicated) ================= */
+var saveState='idle';
+function payload(){
+  var I=S.intake,G=S.grip,B=S.bal,o={session_id:S.id,started_at:S.started,app_version:APP_VERSION,
+    initials:I.initials,age:I.age,gender:I.gender,height_in:I.height,weight_lb:I.weight,phone_hours:I.phone,
+    pavs_days:I.days,pavs_minutes:I.mins,strength_days:I.str,first_activity:S.first,finished:S.finished?'yes':'no'};
+  if(G.done){var g=gripResult();o.grip_norms_row=(sexRow()==='M'?'Male ':'Female ')+rowLabel(I.age);o.grip_predicted_kg=G.pred;o.grip_confidence=G.conf;
+    o.grip_right_kg=G.right;o.grip_left_kg=G.left;o.grip_best_kg=g.best;o.grip_best_hand=g.hand;o.grip_percentile=pVal(g.act);o.grip_predicted_percentile=pVal(g.prd);
+    o.grip_error_pct=Math.round(g.err*10)/10;o.grip_label=g.label;o.grip_per_kg_bodyweight=g.rel?Math.round(g.rel*100)/100:'';}
+  if(B.done){o.balance_first_trial=B.firstTrial;o.balance_errors_no_phone=B.n;o.balance_errors_texting=B.t;o.balance_phone_cost=B.t-B.n;o.balance_text_chars=B.chars||0;o.balance_text=B.text||'';}
+  return o;
+}
+function paintSave(){
+  var box=$('saveBox'); if(!box)return;
+  var h={saving:['wait','Saving your results…'],saved:['ok','Saved. You can close this page.'],
+    skip:['ok',S.intake.age<MIN_SAVE_AGE?'Thanks for taking part. Results for participants under '+MIN_SAVE_AGE+' are shown here only and are not stored.':'Your results are shown here only. Data saving is not switched on yet.'],
+    failed:['fail','Not saved yet. Check your connection and tap Try again. Your answers are still on this phone.'],idle:['wait','']}[saveState];
+  box.className='savebox '+h[0]; box.innerHTML='<span>'+h[1]+'</span>'+(saveState==='failed'?'<button type="button" id="retry">Try again</button><span class="hint">If it keeps failing, show this screen to a volunteer so they can copy your results.</span>':'');
+  box.hidden=!h[1]; var r=$('retry'); if(r)r.addEventListener('click',save);
+}
+var saving=false, again=false;
+function save(){
+  if(!(S.grip.done||S.bal.done))return;
+  if(!ENDPOINT||S.intake.age<MIN_SAVE_AGE){saveState='skip';paintSave();return;}
+  if(saving){again=true;return;}
+  saving=true;saveState='saving';paintSave();
+  var body=JSON.stringify(payload());
+  fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:body,redirect:'follow'})
+   .then(function(r){return r.json();}).then(function(j){ if(!j||!j.ok)throw new Error('rejected');
+      if(JSON.stringify(payload())===body){S.dirty=false;S.savedAt=new Date().toISOString();persist();} saveState='saved'; })
+   .catch(function(){saveState='failed';S.dirty=true;persist();})
+   .then(function(){saving=false;paintSave(); if(again||(saveState==='saved'&&S.dirty)){again=false;save();}});
+}
+window.addEventListener('online',function(){if(S&&S.dirty)save();});
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&S&&S.dirty&&saveState==='failed')save();});
+
+/* ================= START ================= */
+(function(){
+  var old=load(); S=old||blank(); persist();
+  try{history.replaceState({guard:true},'');history.pushState({step:S.step},'');}catch(e){}
+  render(); if(old)showResume();
+  if(S.dirty)save(); else if(S.savedAt)saveState='saved', paintSave();
+})();
+</script>
+</body>
+</html>
