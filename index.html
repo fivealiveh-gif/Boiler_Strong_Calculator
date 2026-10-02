@@ -137,14 +137,14 @@ footer{font-size:.75rem;color:var(--muted)}
     <div class="trials" id="trials">
       <div class="trial" id="trial-n">
         <h2>No phone</h2>
-        <p>Single leg, phone held in both hands, eyes on the dark screen, no typing.</p>
+        <p>Single leg, hands on hips, eyes open and looking straight ahead. Phone put away.</p>
         <div class="count"><button type="button" data-dec="n" aria-label="Remove one error, no phone">−</button><output id="cnt-n">0</output><span class="lab">errors</span></div>
         <button class="big" type="button" data-inc="n">+1 error</button>
         <button class="timer" type="button" data-timer="n">Start 20 s</button>
       </div>
       <div class="trial" id="trial-t">
         <h2>Texting</h2>
-        <p>Same stance, typing the answer to “Exercise is Medicine because…”</p>
+        <p>Same leg, phone in both hands, typing the answer to “Exercise is Medicine because…”</p>
         <div class="count"><button type="button" data-dec="t" aria-label="Remove one error, texting">−</button><output id="cnt-t">0</output><span class="lab">errors</span></div>
         <button class="big" type="button" data-inc="t">+1 error</button>
         <button class="timer" type="button" data-timer="t">Start 20 s</button>
@@ -158,14 +158,14 @@ footer{font-size:.75rem;color:var(--muted)}
         <li>Step, hop, stumble, or fall</li>
         <li>Stance heel or forefoot lifts</li>
         <li>Hip moves more than 30° out or forward</li>
-        <li>A hand leaves the phone</li>
+        <li>Hands leave the hips (no phone) or the phone (texting)</li>
         <li>Touching the spotter, table, or wall</li>
       </ul>
       <p>One error per event, even if several happen at once. Maximum 10 per trial. Stance leg is the non-dominant leg (the one they would not kick a ball with).</p>
     </details>
   </section>
 
-  <footer>Educational demonstration, not a diagnostic test. Handgrip percentiles are interpolated from ACSM’s Guidelines for Exercise Testing and Prescription, 12th ed., Table 3.10 (best single hand, kg). Ages under 20 use the 20–24 row; ages over 79 use the 75–79 row. Nothing entered here is saved.</footer>
+  <footer>Educational demonstration, not a diagnostic test. The balance activity is a modified Balance Error Scoring System (single-leg stance, eyes open, with and without a phone), so published BESS norms do not apply. Handgrip percentiles are interpolated from ACSM’s Guidelines for Exercise Testing and Prescription, 12th ed., Table 3.10 (best single hand, kg). Ages under 20 use the 20–24 row; ages over 79 use the 75–79 row. Nothing entered here is saved.</footer>
 </div>
 
 <script>
@@ -260,9 +260,9 @@ function renderBal(){
   $('firstLabel').textContent=st.first==='n'?'No phone':'Texting';
   $('trial-n').style.order=st.first==='n'?0:1;$('trial-t').style.order=st.first==='t'?0:1;
   var d=st.t-st.n,v,cls,say;
-  if(d>0){v='Texting cost you '+d+' extra balance error'+(d===1?'':'s');cls='off';say='You made '+st.n+' without texting and '+st.t+' while texting, in the same 20-second stance.';}
-  else if(d===0){v='Texting did not change your balance';cls='good';say='You made '+st.n+' error'+(st.n===1?'':'s')+' in both trials. Most people lose some balance when they text.';}
-  else{v='You balanced better while texting';cls='good';say='You made '+st.n+' without texting and '+st.t+' while texting. A second attempt at the same stance is often steadier.';}
+  if(d>0){v='Your phone cost you '+d+' extra balance error'+(d===1?'':'s');cls='off';say='You made '+st.n+' with no phone and '+st.t+' while texting, in the same 20-second stance.';}
+  else if(d===0){v='Your phone did not change your balance';cls='good';say='You made '+st.n+' error'+(st.n===1?'':'s')+' in both trials. Most people lose some balance when they text.';}
+  else{v='You balanced better with your phone';cls='good';say='You made '+st.n+' with no phone and '+st.t+' while texting. A second attempt at the same stance is often steadier.';}
   $('balResult').innerHTML='<p class="verdict '+cls+'">'+v+'</p><p class="say">'+say+'</p>'+
     '<div class="bars"><span>No phone</span><div class="b"><i style="width:'+st.n*10+'%"></i></div><span>'+st.n+'</span>'+
     '<span>Texting</span><div class="b t"><i style="width:'+st.t*10+'%"></i></div><span>'+st.t+'</span></div>';
