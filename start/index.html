@@ -44,7 +44,7 @@ p{margin:0}
 .field.wide{grid-column:1/-1}
 label,.lab{font-size:.8rem;font-weight:600;color:var(--muted)}
 input[type=number],input[type=text],textarea{font:inherit;font-size:1.15rem;font-weight:600;font-variant-numeric:tabular-nums;padding:11px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);width:100%}
-textarea{font-weight:400;font-size:1rem;min-height:130px;resize:vertical}
+textarea{font-weight:400;font-size:1rem;min-height:110px;resize:vertical}
 textarea:disabled{opacity:.6}
 input.bad,textarea.bad,.seg.bad{border-color:var(--bad)}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -73,7 +73,11 @@ table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font
 th,td{padding:6px 4px;text-align:center;border-bottom:1px solid var(--line)}
 th{font-size:.7rem;color:var(--muted);font-weight:600}
 td{font-weight:700}
-.clock{font-family:var(--display);font-size:3.2rem;font-weight:700;line-height:1;text-align:center;font-variant-numeric:tabular-nums}
+.passage{background:var(--track);border-radius:8px;padding:10px 12px;font-size:1rem;line-height:1.4;user-select:none;-webkit-user-select:none}
+.copyhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;scroll-margin-top:8px}
+.card.running textarea{min-height:76px}
+.card.running .passage{font-size:.95rem;padding:8px 10px}
+.clock{font-family:var(--display);font-size:1.7rem;font-weight:700;line-height:1;text-align:center;font-variant-numeric:tabular-nums}
 .verdict{font-family:var(--display);font-weight:700;font-size:1.6rem;line-height:1.1;text-wrap:balance}
 .verdict.good{color:var(--good)} .verdict.off{color:var(--off)}
 .say{font-size:1.05rem}
@@ -124,7 +128,8 @@ footer{font-size:.75rem;color:var(--muted)}
 <script>
 /* ================= CONFIG ================= */
 var ENDPOINT = 'https://script.google.com/macros/s/AKfycbwVvAhghg-ms8QiDpf91AiNVkRAyBffAjf_O45Sx5jojL01kZ5TzuAtEqrD0XPcuH-WlA/exec';              // Google Apps Script web app address goes here
-var APP_VERSION = 'FA26.1';
+var APP_VERSION = 'FA26.2';
+var PASSAGE = 'Exercise is medicine. Moving your body every day helps your heart, your muscles, your mind, and your mood. You do not need a gym to start. Walk, climb the stairs, lift something heavy, and keep going. Small steps add up over time.';
 var KEY = 'boilerStrongSession.v1';
 var MIN_SAVE_AGE = 18;          // younger participants get feedback but nothing is sent
 
@@ -155,6 +160,15 @@ function gripScore(age,sex,pred,conf,right,left,wtLb){
     act:percentile(row,best),prd:percentile(row,pred),rel:wtLb?best/(wtLb*0.45359237):null};
 }
 
+function normText(t){return String(t||'').toLowerCase().replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/\s+/g,' ').trim();}
+function typingScore(typed){
+  var a=normText(typed),b=normText(PASSAGE),n=a.length; if(!n)return{chars:0,correct:0,acc:null};
+  var m=Math.min(b.length,n+40),prev=[],cur,i,j; for(j=0;j<=m;j++)prev[j]=j;
+  for(i=1;i<=n;i++){cur=[i];for(j=1;j<=m;j++){cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a.charAt(i-1)===b.charAt(j-1)?0:1));}prev=cur;}
+  var d=Infinity; for(j=0;j<=m;j++)if(prev[j]<d)d=prev[j];
+  var correct=Math.max(0,n-d); return{chars:String(typed).length,correct:correct,acc:Math.round(correct/n*100)};
+}
+
 /* ================= STATE (saved on this device after every change) ================= */
 function uid(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);}
 function blank(){return{v:1,id:uid(),started:new Date().toISOString(),step:'welcome',first:null,
@@ -178,9 +192,9 @@ function fail(msg,ids){var e=$('err');e.textContent=msg;e.hidden=false;(ids||[])
 function range(v,lo,hi){return v!==null&&v!==undefined&&v>=lo&&v<=hi;}
 
 /* ================= NAVIGATION (Back button and refresh never lose the entry) ================= */
-var ORDER=['welcome','intake','choose','grip1','grip2','gripR','bal1','bal2','balR','done'];
+var ORDER=['welcome','intake','choose','grip1','grip2','gripR','bal1','bal2','balR','wrap','done'];
 function go(step,replace){S.step=step;persist();try{history[replace?'replaceState':'pushState']({step:step},'');}catch(e){}render();window.scrollTo(0,0);}
-function prevOf(step){return{intake:'welcome',choose:'intake',grip1:'choose',grip2:'grip1',gripR:'grip2',bal1:'choose',bal2:'bal1',balR:'bal2',done:'choose'}[step]||'welcome';}
+function prevOf(step){return{intake:'welcome',choose:'intake',grip1:'choose',grip2:'grip1',gripR:'grip2',bal1:'choose',bal2:'bal1',balR:'bal2',wrap:'choose',done:'choose'}[step]||'welcome';}
 window.addEventListener('popstate',function(e){
   var st=e.state;
   if(!st||st.guard){ try{history.pushState({step:S.step},'');}catch(x){} toast('Use the buttons on this page. Your answers are safe.'); return; }
@@ -192,10 +206,10 @@ window.addEventListener('beforeunload',function(e){ if(inProgress()&&memOnly){e.
 /* ================= SCREENS ================= */
 function sexRow(){var g=S.intake.gender;return g==='Male'?'M':g==='Female'?'F':(S.grip.row||null);}
 function render(){
-  var m=$('main'), s=S.step, idx={welcome:0,intake:1,choose:2,grip1:3,grip2:3,gripR:3,bal1:3,bal2:3,balR:3,done:4}[s];
+  var m=$('main'), s=S.step, idx={welcome:0,intake:1,choose:2,grip1:3,grip2:3,gripR:3,bal1:3,bal2:3,balR:3,wrap:4,done:4}[s];
   $('steps').innerHTML=[0,1,2,3,4].map(function(i){return '<i class="'+(i<=idx?'on':'')+'"></i>';}).join('');
   stopClock();
-  ({welcome:scrWelcome,intake:scrIntake,choose:scrChoose,grip1:scrGrip1,grip2:scrGrip2,gripR:scrGripR,bal1:scrBal1,bal2:scrBal2,balR:scrBalR,done:scrDone}[s]||scrWelcome)(m);
+  ({welcome:scrWelcome,intake:scrIntake,choose:scrChoose,grip1:scrGrip1,grip2:scrGrip2,gripR:scrGripR,bal1:scrBal1,bal2:scrBal2,balR:scrBalR,wrap:scrWrap,done:scrDone}[s]||scrWelcome)(m);
   var b=$('backBtn'); if(b)b.addEventListener('click',function(){go(prevOf(S.step));});
 }
 function showResume(){
@@ -253,7 +267,7 @@ function scrChoose(m){
    '<div class="nav">'+(g||b?'<button class="primary" type="button" id="finBtn">'+(both?'Finish':'No thanks, finish')+'</button>':'<button class="ghost" type="button" id="backBtn">Back</button>')+'</div>';
   $('cGrip').addEventListener('click',function(){if(!S.first)S.first='Handgrip';go(g?'gripR':'grip1');});
   $('cBal').addEventListener('click',function(){if(!S.first)S.first='Balance';if(!S.bal.firstTrial)S.bal.firstTrial=Math.random()<.5?'No phone':'Texting';go(b?'balR':'bal1');});
-  var f=$('finBtn'); if(f)f.addEventListener('click',function(){S.finished=true;go('done');save();});
+  var f=$('finBtn'); if(f)f.addEventListener('click',function(){go('wrap');});
 }
 
 function scrGrip1(m){
@@ -314,25 +328,29 @@ var clockT=null;function stopClock(){if(clockT){clearInterval(clockT);clockT=nul
 function beep(){try{var C=window.AudioContext||window.webkitAudioContext,c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=880;o.connect(g);g.connect(c.destination);g.gain.value=.2;o.start();o.stop(c.currentTime+.5);}catch(e){}}
 var READY=5000, TRIAL=20000;
 function scrBal1(m){
-  var B=S.bal, first=B.firstTrial||'No phone';
-  var noPhone='<div class="card"><h3><span class="tag">'+(first==='No phone'?'First':'Second')+'</span>No-phone trial</h3><p>Put this phone down or hand it to the volunteer. Stand on your <b>non-dominant leg</b> (the one you would not kick a ball with), hands on hips, eyes open, for 20 seconds. The volunteer times it and counts errors.</p></div>';
-  var texting='<div class="card"><h3><span class="tag">'+(first==='Texting'?'First':'Second')+'</span>Texting trial</h3><p>Same leg, phone in both hands. Tap Start, get into position during the 5-second countdown, then type your answer for 20 seconds while balancing.</p>'+
-    '<div class="clock" id="clock" hidden></div><button class="primary" type="button" id="startT">Start texting trial</button>'+
-    '<label for="txt"><b>Exercise is Medicine because…</b></label><textarea id="txt" disabled placeholder="The box unlocks when the trial starts.">'+esc(B.text||'')+'</textarea>'+
+  var B=S.bal, first=B.firstTrial||'No phone'; if(!B.surface){B.surface='Foam pad';persist();}
+  var noPhone='<div class="card"><h3><span class="tag">'+(first==='No phone'?'First':'Second')+'</span>No-phone trial</h3><p>Put this phone down or hand it to the volunteer. Stand on your <b>non-dominant leg</b> (the one you would not kick a ball with) on the chosen surface, hands on hips, eyes open, for 20 seconds. The volunteer times it and counts errors.</p></div>';
+  var texting='<div class="card"><h3><span class="tag">'+(first==='Texting'?'First':'Second')+'</span>Texting trial</h3><p>Same leg, same surface, phone in both hands. Tap Start, get into position during the 5-second countdown, then copy the passage for 20 seconds while balancing. Type as much as you can, as accurately as you can.</p>'+
+    '<button class="primary" type="button" id="startT">Start texting trial</button>'+
+    '<div class="copyhead" id="copyHead"><label for="txt"><b>Copy this passage:</b></label><span class="clock" id="clock" hidden></span></div><div class="passage">'+esc(PASSAGE)+'</div><textarea id="txt" disabled autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="The box unlocks when the trial starts.">'+esc(B.text||'')+'</textarea>'+
     '<p class="hint" id="tDone" hidden></p></div>';
-  m.innerHTML='<h2>Balance &amp; Texting</h2><p class="say">Two 20-second trials on one leg. Wait for the volunteer before each one.</p>'+(first==='No phone'?noPhone+texting:texting+noPhone)+nav(true,'Both trials done');
+  m.innerHTML='<h2>Balance &amp; Texting</h2><p class="say">Two 20-second trials on one leg. Wait for the volunteer before each one.</p><div class="fields">'+seg('surface','Volunteer: which surface for both trials?',['Foam pad','Firm floor'],B.surface)+'</div>'+(first==='No phone'?noPhone+texting:texting+noPhone)+nav(true,'Both trials done');
   var txt=$('txt'),clock=$('clock'),start=$('startT'),done=$('tDone');
+  bindSeg('surface',B,'surface');
   txt.addEventListener('input',function(){B.text=txt.value;persist();});
-  function finish(){stopClock();txt.disabled=true;txt.blur();B.tDone=true;B.text=txt.value;B.chars=txt.value.length;persist();clock.hidden=true;start.hidden=false;start.textContent='Redo texting trial';start.className='ghost';done.hidden=false;done.textContent='Trial complete. You typed '+B.chars+' characters. Now ask the volunteer for your error count.';}
+  txt.addEventListener('paste',function(e){e.preventDefault();});txt.addEventListener('drop',function(e){e.preventDefault();});
+  function toTop(){try{$('copyHead').closest('.card').classList.add('running');$('copyHead').scrollIntoView({block:'start'});}catch(x){}}
+  function doneMsg(){return 'Trial complete. You typed '+(B.chars||0)+' characters'+(B.acc!=null?' at '+B.acc+'% accuracy':'')+'.';}
+  function finish(){stopClock();try{$('copyHead').closest('.card').classList.remove('running');}catch(x){}txt.disabled=true;txt.blur();B.tDone=true;B.text=txt.value;var ts=typingScore(txt.value);B.chars=ts.chars;B.correct=ts.correct;B.acc=ts.acc;persist();clock.hidden=true;start.hidden=false;start.textContent='Redo texting trial';start.className='ghost';done.hidden=false;done.textContent=doneMsg()+' Now ask the volunteer for your error count.';}
   function tick(){
     var el=Date.now()-B.tStart;
     if(el<READY){clock.textContent='Ready… '+Math.ceil((READY-el)/1000);return;}
-    if(el<READY+TRIAL){if(txt.disabled){txt.disabled=false;txt.placeholder='Type here…';txt.focus();try{txt.setSelectionRange(txt.value.length,txt.value.length);}catch(x){}}clock.textContent=Math.ceil((READY+TRIAL-el)/1000)+' s';return;}
+    if(el<READY+TRIAL){if(txt.disabled){txt.disabled=false;txt.placeholder='Type here…';txt.focus();setTimeout(toTop,350);try{txt.setSelectionRange(txt.value.length,txt.value.length);}catch(x){}}clock.textContent=Math.ceil((READY+TRIAL-el)/1000)+' s';return;}
     beep();finish();
   }
-  function run(){start.hidden=true;clock.hidden=false;done.hidden=true;tick();clockT=setInterval(tick,150);}
-  start.addEventListener('click',function(){B.tStart=Date.now();B.tDone=false;B.text='';txt.value='';persist();run();});
-  if(B.tDone){txt.disabled=true;start.textContent='Redo texting trial';start.className='ghost';done.hidden=false;done.textContent='Trial complete. You typed '+(B.chars||0)+' characters.';}
+  function run(){start.hidden=true;clock.hidden=false;done.hidden=true;toTop();tick();clockT=setInterval(tick,150);}
+  start.addEventListener('click',function(){B.tStart=Date.now();B.tDone=false;B.text='';B.chars=0;B.acc=null;B.correct=0;txt.value='';persist();run();});
+  if(B.tDone){txt.disabled=true;start.textContent='Redo texting trial';start.className='ghost';done.hidden=false;done.textContent=doneMsg();}
   else if(B.tStart){ if(Date.now()-B.tStart<READY+TRIAL)run(); else finish(); }   // refreshed during or after a trial
   $('nextBtn').addEventListener('click',function(){
     if(clockT)return fail('Wait for the texting trial to finish.',[]);
@@ -358,15 +376,22 @@ function scrBalR(m){
   else{v='You balanced better with your phone';cls='good';say='You made '+B.n+' with no phone and '+B.t+' while texting. A second attempt at the same stance is often steadier.';}
   m.innerHTML='<h2>Your balance result</h2><div class="card"><p class="verdict '+cls+'">'+v+'</p><p class="say">'+say+'</p>'+
    '<div class="bars"><span>No phone</span><div class="b"><i style="width:'+B.n*10+'%"></i></div><span>'+B.n+'</span><span>Texting</span><div class="b t"><i style="width:'+B.t*10+'%"></i></div><span>'+B.t+'</span></div>'+
-   '<p class="hint">You typed '+(B.chars||0)+' characters in 20 seconds while balancing.</p></div>'+
+   '<dl class="stats"><div><dt>Typed in 20 seconds</dt><dd>'+(B.chars||0)+' <small>characters</small></dd></div><div><dt>Typing accuracy</dt><dd>'+(B.acc!=null?B.acc+'%':'–')+'</dd></div></dl><p class="hint">Both trials on the '+esc((B.surface||'').toLowerCase())+'.</p></div>'+
    '<div class="nav"><button class="primary" type="button" id="nextBtn">Continue</button></div>';
   $('nextBtn').addEventListener('click',function(){go('choose');});
+}
+
+function scrWrap(m){
+  m.innerHTML='<h2>One last question</h2><div class="fields"><div class="field wide"><label for="eim">Optional: finish the sentence. <b>Exercise is Medicine because…</b></label><textarea id="eim" maxlength="500">'+esc(S.eim||'')+'</textarea></div></div>'+
+   '<div class="nav"><button class="ghost" type="button" id="backBtn">Back</button><button class="primary" type="button" id="nextBtn">Finish</button></div>';
+  $('eim').addEventListener('input',function(){S.eim=$('eim').value;S.dirty=true;persist();});
+  $('nextBtn').addEventListener('click',function(){S.finished=true;S.dirty=true;go('done');save();});
 }
 
 function scrDone(m){
   var G=S.grip,B=S.bal,rows='';
   if(G.done){var g=gripResult();rows+='<div><span>Handgrip best</span><span>'+g.best+' kg ('+pText(g.act)+' percentile)</span></div><div><span>Predicted / confidence</span><span>'+G.pred+' kg / '+G.conf+' of 10</span></div><div><span>Right / left</span><span>'+G.right+' / '+G.left+' kg</span></div>';}
-  if(B.done){rows+='<div><span>Balance errors, no phone</span><span>'+B.n+'</span></div><div><span>Balance errors, texting</span><span>'+B.t+'</span></div><div><span>First trial</span><span>'+esc(B.firstTrial)+'</span></div>';}
+  if(B.done){rows+='<div><span>Balance errors, no phone</span><span>'+B.n+'</span></div><div><span>Balance errors, texting</span><span>'+B.t+'</span></div><div><span>First trial / surface</span><span>'+esc(B.firstTrial)+' / '+esc(B.surface)+'</span></div><div><span>Typed / accuracy</span><span>'+(B.chars||0)+' chars / '+(B.acc!=null?B.acc+'%':'–')+'</span></div>';}
   m.innerHTML='<h2>Thank you'+(S.intake.initials?', '+esc(S.intake.initials):'')+'</h2><div id="saveBox"></div>'+
    '<div class="card"><h3>Your results</h3><div class="summary"><div><span>Entry code</span><span>'+esc(S.id)+'</span></div>'+rows+'</div></div>'+
    '<p class="say">Strength and balance both improve with regular activity. Exercise is Medicine.</p>'+
@@ -389,7 +414,8 @@ function payload(){
   if(G.done){var g=gripResult();o.grip_norms_row=(sexRow()==='M'?'Male ':'Female ')+rowLabel(I.age);o.grip_predicted_kg=G.pred;o.grip_confidence=G.conf;
     o.grip_right_kg=G.right;o.grip_left_kg=G.left;o.grip_best_kg=g.best;o.grip_best_hand=g.hand;o.grip_percentile=pVal(g.act);o.grip_predicted_percentile=pVal(g.prd);
     o.grip_error_pct=Math.round(g.err*10)/10;o.grip_label=g.label;o.grip_per_kg_bodyweight=g.rel?Math.round(g.rel*100)/100:'';}
-  if(B.done){o.balance_first_trial=B.firstTrial;o.balance_errors_no_phone=B.n;o.balance_errors_texting=B.t;o.balance_phone_cost=B.t-B.n;o.balance_text_chars=B.chars||0;o.balance_text=B.text||'';}
+  if(B.done){o.balance_first_trial=B.firstTrial;o.balance_errors_no_phone=B.n;o.balance_errors_texting=B.t;o.balance_phone_cost=B.t-B.n;o.balance_text_chars=B.chars||0;o.balance_text=B.text||'';o.balance_surface=B.surface;o.balance_text_accuracy_pct=B.acc!=null?B.acc:'';o.balance_text_correct_chars=B.correct||0;}
+  o.eim_because=S.eim||'';
   return o;
 }
 function paintSave(){
