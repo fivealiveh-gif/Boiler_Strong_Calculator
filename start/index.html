@@ -74,6 +74,7 @@ th,td{padding:6px 4px;text-align:center;border-bottom:1px solid var(--line)}
 th{font-size:.7rem;color:var(--muted);font-weight:600}
 td{font-weight:700}
 .passage{background:var(--track);border-radius:8px;padding:10px 12px;font-size:1rem;line-height:1.4;user-select:none;-webkit-user-select:none}
+.legbox{background:var(--btn-bg);color:var(--btn-fg);border-radius:10px;padding:12px 14px;font-size:1.1rem;text-align:center}
 .copyhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;scroll-margin-top:8px}
 .card.running textarea{min-height:76px}
 .card.running .passage{font-size:.95rem;padding:8px 10px}
@@ -128,7 +129,7 @@ footer{font-size:.75rem;color:var(--muted)}
 <script>
 /* ================= CONFIG ================= */
 var ENDPOINT = 'https://script.google.com/macros/s/AKfycbwVvAhghg-ms8QiDpf91AiNVkRAyBffAjf_O45Sx5jojL01kZ5TzuAtEqrD0XPcuH-WlA/exec';              // Google Apps Script web app address goes here
-var APP_VERSION = 'FA26.4';
+var APP_VERSION = 'FA26.5';
 var PASSAGE = 'Exercise is medicine. Moving your body every day helps your heart, your muscles, your mind, and your mood. You do not need a gym to start. Walk, climb the stairs, lift something heavy, and keep going. Small steps add up over time.';
 var KEY = 'boilerStrongSession.v2';
 var MIN_SAVE_AGE = 18;          // younger participants get feedback but nothing is sent
@@ -335,21 +336,22 @@ function balInit(){
 }
 function orderText(B){return B.order.map(function(k){return TRIALS[k];}).join(' > ');}
 function scrBal1(m){
-  var B=balInit(), tags=['First','Second','Third'];
+  var B=balInit(), tags=['First','Second','Third'], leg=B.kick?(B.kick==='Right'?'LEFT':'RIGHT'):null, legTxt=leg?'Stand on your <b>'+leg+' leg</b>':'Stand on one leg (answer the question above first)';
   function card(k,i){
     var tag='<span class="tag">'+tags[i]+'</span>';
-    if(k==='n')return '<div class="card"><h3>'+tag+'No-phone trial</h3><p>Put this phone down or hand it to the volunteer. Stand on your <b>non-dominant leg</b> (the one you would not kick a ball with) on the chosen surface, hands on hips, eyes open, for 20 seconds. The volunteer times it and counts errors.</p></div>';
+    if(k==='n')return '<div class="card"><h3>'+tag+'No-phone trial</h3><p>Put this phone down or hand it to the volunteer. '+legTxt+' on the chosen surface, hands on hips, eyes open, for 20 seconds. The volunteer times it and counts errors.</p></div>';
     var T=B[k], copy=k==='c';
-    return '<div class="card" id="card-'+k+'"><h3>'+tag+(copy?'Texting trial: copy':'Texting trial: your own words')+'</h3><p>Same leg, same surface, phone in both hands. Tap Start, get into position during the 5-second countdown, then '+(copy?'copy the passage for 20 seconds. Type as much as you can, as accurately as you can.':'finish the sentence in your own words for 20 seconds. Keep typing until time is up.')+'</p>'+
+    return '<div class="card" id="card-'+k+'"><h3>'+tag+(copy?'Texting trial: copy':'Texting trial: your own words')+'</h3><p>'+legTxt+', same surface, phone in both hands. Tap Start, get into position during the 5-second countdown, then '+(copy?'copy the passage for 20 seconds. Type as much as you can, as accurately as you can.':'finish the sentence in your own words for 20 seconds. Keep typing until time is up.')+'</p>'+
       '<button class="primary" type="button" id="start-'+k+'">Start this trial</button>'+
       '<div class="copyhead" id="head-'+k+'"><label for="txt-'+k+'"><b>'+(copy?'Copy this passage:':'Exercise is Medicine because…')+'</b></label><span class="clock" id="clock-'+k+'" hidden></span></div>'+
       (copy?'<div class="passage">'+esc(PASSAGE)+'</div>':'')+
       '<textarea id="txt-'+k+'" disabled autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="The box unlocks when the trial starts.">'+esc(T.text||'')+'</textarea>'+
       '<p class="hint" id="done-'+k+'" hidden></p></div>';
   }
-  m.innerHTML='<h2>Balance &amp; Texting</h2><p class="say">Three 20-second trials on one leg, in the order shown. Wait for the volunteer before each one.</p><div class="fields">'+seg('surface','Volunteer: which surface for all trials?',['Foam pad','Firm floor'],B.surface)+'</div>'+B.order.map(card).join('')+nav(true,'All trials done');
-  bindSeg('surface',B,'surface');
+  m.innerHTML='<h2>Balance &amp; Texting</h2><p class="say">Three 20-second trials on one leg, in the order shown. Wait for the volunteer before each one.</p><div class="fields">'+seg('kick','Which leg would you kick a ball with?',['Right','Left'],B.kick)+'</div>'+(leg?'<div class="legbox">Stand on your <b>'+leg+' leg</b> for all three trials.</div>':'')+'<div class="fields">'+seg('surface','Volunteer: which surface for all trials?',['Foam pad','Firm floor'],B.surface)+'</div>'+B.order.map(card).join('')+nav(true,'All trials done');
   var running=null;
+  bindSeg('surface',B,'surface');
+  $('kick').addEventListener('click',function(e){var b=e.target.closest('button');if(!b||running)return;B.kick=b.dataset.v;persist();render();});
   function msg(k){var T=B[k];return 'Trial complete. You typed '+(T.chars||0)+' characters'+(k==='c'&&T.acc!=null?' at '+T.acc+'% accuracy':'')+'.';}
   ['c','o'].forEach(function(k){
     var T=B[k],txt=$('txt-'+k),clock=$('clock-'+k),start=$('start-'+k),done=$('done-'+k),head=$('head-'+k),crd=$('card-'+k);
@@ -365,12 +367,13 @@ function scrBal1(m){
     function run(){running=k;start.hidden=true;clock.hidden=false;done.hidden=true;toTop();tick();clockT=setInterval(tick,150);}
     txt.addEventListener('input',function(){T.text=txt.value;persist();});
     txt.addEventListener('paste',function(e){e.preventDefault();});txt.addEventListener('drop',function(e){e.preventDefault();});
-    start.addEventListener('click',function(){if(running)return;T.tStart=Date.now();T.tDone=false;T.text='';T.chars=0;T.acc=null;T.correct=0;txt.value='';persist();run();});
+    start.addEventListener('click',function(){if(running)return;if(!B.kick){fail('First answer: which leg would you kick a ball with?',['kick']);return;}T.tStart=Date.now();T.tDone=false;T.text='';T.chars=0;T.acc=null;T.correct=0;txt.value='';persist();run();});
     if(T.tDone)shown();
     else if(T.tStart){ if(Date.now()-T.tStart<READY+TRIAL&&!running)run(); else finish(); }   // refreshed during or after a trial
   });
   $('nextBtn').addEventListener('click',function(){
     if(running)return fail('Wait for the texting trial to finish.',[]);
+    if(!B.kick)return fail('First answer: which leg would you kick a ball with?',['kick']);
     if(!B.c.tDone)return fail('Do the copy trial first: tap Start this trial on that card.',[]);
     if(!B.o.tDone)return fail('Do the own-words trial first: tap Start this trial on that card.',[]);
     go('bal2');
@@ -416,7 +419,7 @@ function scrWrap(m){
 function scrDone(m){
   var G=S.grip,B=S.bal,rows='';
   if(G.done){var g=gripResult();rows+='<div><span>Handgrip best</span><span>'+g.best+' kg ('+pText(g.act)+' percentile)</span></div><div><span>Predicted / confidence</span><span>'+G.pred+' kg / '+G.conf+' of 10</span></div><div><span>Right / left</span><span>'+G.right+' / '+G.left+' kg</span></div>';}
-  if(B.done){rows+='<div><span>Errors: no phone / copy / own words</span><span>'+B.n+' / '+B.t+' / '+B.oe+'</span></div><div><span>Trial order</span><span>'+esc(orderText(B))+'</span></div><div><span>Surface</span><span>'+esc(B.surface)+'</span></div><div><span>Copied / accuracy</span><span>'+(B.c.chars||0)+' chars / '+(B.c.acc!=null?B.c.acc+'%':'–')+'</span></div><div><span>Own words</span><span>'+(B.o.chars||0)+' chars</span></div>';}
+  if(B.done){rows+='<div><span>Errors: no phone / copy / own words</span><span>'+B.n+' / '+B.t+' / '+B.oe+'</span></div><div><span>Trial order</span><span>'+esc(orderText(B))+'</span></div><div><span>Surface / stance leg</span><span>'+esc(B.surface)+' / '+(B.kick==='Right'?'Left':'Right')+'</span></div><div><span>Copied / accuracy</span><span>'+(B.c.chars||0)+' chars / '+(B.c.acc!=null?B.c.acc+'%':'–')+'</span></div><div><span>Own words</span><span>'+(B.o.chars||0)+' chars</span></div>';}
   m.innerHTML='<h2>Thank you'+(S.intake.initials?', '+esc(S.intake.initials):'')+'</h2><div id="saveBox"></div>'+
    '<div class="card"><h3>Your results</h3><div class="summary"><div><span>Entry code</span><span>'+esc(S.id)+'</span></div>'+rows+'</div></div>'+
    '<p class="say">Strength and balance both improve with regular activity. Exercise is Medicine.</p>'+
@@ -442,7 +445,7 @@ function payload(){
   if(B.done){o.balance_first_trial=TRIALS[B.order[0]];o.balance_trial_order=orderText(B);o.balance_surface=B.surface;
     o.balance_errors_no_phone=B.n;o.balance_errors_texting=B.t;o.balance_phone_cost=B.t-B.n;o.balance_errors_open=B.oe;o.balance_open_cost=B.oe-B.n;
     o.balance_text_chars=B.c.chars||0;o.balance_text=B.c.text||'';o.balance_text_accuracy_pct=B.c.acc!=null?B.c.acc:'';o.balance_text_correct_chars=B.c.correct||0;
-    o.balance_open_chars=B.o.chars||0;o.balance_open_text=B.o.text||'';}
+    o.balance_open_chars=B.o.chars||0;o.balance_open_text=B.o.text||'';o.balance_stance_leg=B.kick==='Right'?'Left':'Right';}
   o.eim_because=(S.eim||'').trim()||((B.done&&B.o)?(B.o.text||'').trim():'');
   return o;
 }
