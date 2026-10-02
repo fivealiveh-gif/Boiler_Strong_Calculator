@@ -128,7 +128,7 @@ footer{font-size:.75rem;color:var(--muted)}
 <script>
 /* ================= CONFIG ================= */
 var ENDPOINT = 'https://script.google.com/macros/s/AKfycbwVvAhghg-ms8QiDpf91AiNVkRAyBffAjf_O45Sx5jojL01kZ5TzuAtEqrD0XPcuH-WlA/exec';              // Google Apps Script web app address goes here
-var APP_VERSION = 'FA26.2';
+var APP_VERSION = 'FA26.3';
 var PASSAGE = 'Exercise is medicine. Moving your body every day helps your heart, your muscles, your mind, and your mood. You do not need a gym to start. Walk, climb the stairs, lift something heavy, and keep going. Small steps add up over time.';
 var KEY = 'boilerStrongSession.v1';
 var MIN_SAVE_AGE = 18;          // younger participants get feedback but nothing is sent
@@ -382,10 +382,11 @@ function scrBalR(m){
 }
 
 function scrWrap(m){
-  m.innerHTML='<h2>One last question</h2><div class="fields"><div class="field wide"><label for="eim">Optional: finish the sentence. <b>Exercise is Medicine because…</b></label><textarea id="eim" maxlength="500">'+esc(S.eim||'')+'</textarea></div></div>'+
+  m.innerHTML='<h2>One last question</h2><div class="fields"><div class="field wide"><label for="eim">Finish the sentence. <b>Exercise is Medicine because…</b></label><textarea id="eim" maxlength="500">'+esc(S.eim||'')+'</textarea></div></div>'+
    '<div class="nav"><button class="ghost" type="button" id="backBtn">Back</button><button class="primary" type="button" id="nextBtn">Finish</button></div>';
-  $('eim').addEventListener('input',function(){S.eim=$('eim').value;S.dirty=true;persist();});
-  $('nextBtn').addEventListener('click',function(){S.finished=true;S.dirty=true;go('done');save();});
+  m.querySelector('.nav').insertAdjacentHTML('beforebegin','<div class="err" id="err" role="alert" hidden></div>');
+  $('eim').addEventListener('input',function(){S.eim=$('eim').value;S.dirty=true;$('eim').classList.remove('bad');persist();});
+  $('nextBtn').addEventListener('click',function(){if(!(S.eim||'').trim())return fail('Please finish the sentence before you tap Finish.',['eim']);S.finished=true;S.dirty=true;go('done');save();});
 }
 
 function scrDone(m){
